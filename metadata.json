@@ -1,0 +1,6 @@
+{
+  "name": "Paperly",
+  "description": "A beautiful, fully offline Android document workspace for reading PDFs, viewing spreadsheets, processing images, and editing PDFs with 250+ visual themes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

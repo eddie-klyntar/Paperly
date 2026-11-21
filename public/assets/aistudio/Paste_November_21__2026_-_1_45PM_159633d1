@@ -1,0 +1,1198 @@
+# PAPERLY
+## A Beautiful, Fully Offline Android Document Workspace
+
+Build a complete, production-quality native Android application named **Paperly**, using Kotlin and Jetpack Compose.
+
+Paperly is an offline-first document viewing, reading, conversion, compression, image processing and document organisation application.
+
+It combines four major product categories into one cohesive application:
+
+1. A professional PDF reader.
+2. A lightweight Excel and spreadsheet viewer.
+3. An image-processing and conversion workshop.
+4. A comprehensive PDF manipulation workshop.
+
+Its defining characteristic is an extensive visual customisation system with 250+ distinct theme presets and a complete theme editor.
+
+The application must be lightweight, responsive, dependable, aesthetically sophisticated and fully functional without internet connectivity.
+
+This is not a cloud document platform, subscription-based productivity suite or generic file manager.
+
+**Paperly should feel like a complete document workspace that users can comfortably keep installed as their everyday document utility.**
+
+---
+
+# 1. CORE PRODUCT PHILOSOPHY
+
+The application should solve common document-related problems without requiring users to install several separate applications.
+
+Users should be able to:
+
+- Open and read PDFs.
+- View Excel spreadsheets.
+- Search within documents.
+- Resize photographs.
+- Compress images to specific file sizes.
+- Convert between image formats.
+- Merge PDF documents.
+- Split PDFs.
+- Reorganise document pages.
+- Extract selected pages.
+- Generate PDFs from photographs.
+- Add basic annotations.
+- Share documents.
+- Customise the entire application's appearance.
+
+The application must prioritise:
+
+- Simplicity.
+- Reliability.
+- Offline functionality.
+- Local processing.
+- Performance.
+- Non-destructive operations.
+- Excellent readability.
+- Extensive visual personalisation.
+
+Do not turn Paperly into an unnecessarily complicated productivity system.
+
+---
+
+# 2. FIRST-LAUNCH EXPERIENCE — CHOOSE YOUR OWN LOOK
+
+The first-launch experience is one of the most important parts of Paperly.
+
+Do not impose a mandatory configuration process before users can access their documents.
+
+The first launch should introduce the application with a beautiful, lightweight theme-selection experience.
+
+## Welcome Screen
+
+Display:
+
+**Paperly**
+
+*Your documents. Your workspace.*
+
+Supporting description:
+
+"Read, organise and prepare your documents, entirely on your device."
+
+Present three clear options.
+
+### Option A: Explore Themes
+
+Open a gallery of professionally designed visual themes.
+
+Show actual application previews rather than decorative colour samples.
+
+Each preview should demonstrate:
+
+- Home screen appearance.
+- PDF reading interface.
+- Spreadsheet viewer.
+- Workshop interface.
+- Typography.
+- Surface materials.
+- Navigation design.
+
+Users can select and immediately apply a theme.
+
+### Option B: Create My Own Theme
+
+Open the Custom Theme Studio.
+
+Allow users to customise the application's appearance using live previews and intuitive controls.
+
+Provide sensible defaults. Users must not be required to configure every individual property.
+
+Allow saving the result as a personal theme.
+
+### Option C: Skip for Now
+
+This option is mandatory.
+
+Users who do not care about customisation should be able to skip onboarding entirely and immediately start using Paperly with a professionally designed default theme.
+
+Do not force users through multiple configuration screens.
+
+Do not require an account, registration or internet connection.
+
+Theme selection must remain accessible through Settings.
+
+### Onboarding Principles
+
+- Keep onboarding short.
+- Make theme selection possible immediately.
+- Provide a prominent skip option.
+- Persist theme preferences locally.
+- Do not interrupt the first document-opening workflow.
+- Allow users to change their visual preferences later.
+
+The user should be able to open their first PDF within seconds of installing Paperly.
+
+---
+
+# 3. THEME ENGINE — 250+ DISTINCT VISUAL IDENTITIES
+
+The theme engine is one of Paperly's defining features.
+
+Implement a comprehensive theme architecture containing at least 250 distinct, locally bundled theme presets.
+
+**These must be actual visual design variations, not 250 different accent colours applied to an identical interface.**
+
+Each theme should have a coherent visual language.
+
+Themes may independently influence:
+
+- Overall application composition.
+- Typography.
+- Background treatments.
+- Surface materials.
+- Navigation.
+- Toolbars.
+- Buttons.
+- Cards.
+- Component geometry.
+- Borders.
+- Shadows.
+- Transparency.
+- Blur.
+- Spacing.
+- Interface density.
+- Icons and decorative elements.
+- Transitions and animations.
+- PDF reading controls.
+- Spreadsheet presentation.
+- Workshop interfaces.
+
+## Required Theme Collections
+
+Include styles inspired by:
+
+1. Liquid Glass.
+2. Glassmorphism.
+3. Frosted Glass.
+4. Neumorphism.
+5. Material You.
+6. Windows Fluent.
+7. macOS-inspired.
+8. Pure AMOLED.
+9. Midnight Blue.
+10. Cyberpunk.
+11. Retro Terminal.
+12. Swiss Minimalism.
+13. Editorial.
+14. Vintage Paper.
+15. Typewriter.
+16. Brutalist.
+17. Scandinavian.
+18. Japanese Minimalism.
+19. Y2K.
+20. Vaporwave.
+21. Synthwave.
+22. Pastel.
+23. Monochrome.
+24. Organic Nature.
+25. Sunset Gradient.
+26. Ocean.
+27. Aurora.
+28. Industrial.
+29. Metallic.
+30. Holographic.
+31. Blueprint.
+32. Retro Computing.
+33. Academic.
+34. Modern Corporate.
+35. Minimal White.
+36. Dark Editorial.
+37. Warm Ivory.
+38. Soft Lavender.
+39. Clay.
+40. Botanical.
+
+Expand these directions into at least 250 complete theme presets.
+
+### Genuine Visual Differentiation
+
+Each collection must have its own visual characteristics.
+
+Examples:
+
+- Liquid Glass: translucent layers, reflections, depth and carefully controlled blur.
+- Editorial: sophisticated typography, structured layouts and magazine-inspired hierarchy.
+- Pure AMOLED: genuinely black surfaces, minimal borders and restrained highlights.
+- Brutalist: strong typography, hard edges and bold composition.
+- Vintage Paper: warm surfaces, paper-inspired treatments and traditional typography.
+- Terminal: monospace typography, technical elements and a distinct navigation system.
+- Neumorphism: restrained raised and recessed surfaces.
+- Scandinavian: spacious composition, understated colours and soft geometry.
+
+Do not simply recolour the same card-based layout.
+
+Build a reusable theme-definition system.
+
+Every theme must be implemented consistently throughout the application, including the home screen, PDF reader, spreadsheet viewer, settings and workshops.
+
+## Theme Gallery
+
+Include:
+
+- All themes.
+- Theme categories.
+- Theme search.
+- Favourites.
+- Recently used themes.
+- Light and dark variants where appropriate.
+- Detailed previews.
+- Instant theme application.
+- Random theme selection.
+- Custom theme presets.
+- Theme duplication.
+- Restore defaults.
+- Import and export personal theme configurations.
+
+All theme assets must be available locally.
+
+No remote theme downloads.
+
+---
+
+# 4. CUSTOM THEME STUDIO
+
+Create a complete visual theme editor.
+
+Users should be able to create a theme from scratch or customise an existing preset.
+
+## Customisation Categories
+
+### Colours
+
+- Primary background.
+- Secondary background.
+- Surface colours.
+- Accent colours.
+- Primary text.
+- Secondary text.
+- Borders.
+- Selected elements.
+- Warning colours.
+- Error colours.
+
+Provide colour presets and custom colour selection.
+
+### Materials and Effects
+
+- Liquid Glass.
+- Frosted Glass.
+- Acrylic.
+- Solid surfaces.
+- Flat surfaces.
+- Raised surfaces.
+- Recessed surfaces.
+- Transparent surfaces.
+- Gradients.
+
+### Typography
+
+- Font family.
+- Font size.
+- Font weight.
+- Heading typography.
+- Body typography.
+- Interface labels.
+- Monospace typography.
+- Line height.
+
+### Component Geometry
+
+- Corner radius.
+- Button shapes.
+- Card shapes.
+- Border appearance.
+- Spacing.
+- Interface density.
+- Toolbar appearance.
+
+### Behaviour
+
+- Animation intensity.
+- Transition speed.
+- Blur intensity.
+- Transparency.
+- Reduced-motion mode.
+
+### Live Preview
+
+This is essential.
+
+Users must see their changes reflected in actual Paperly screens.
+
+Provide previews for:
+
+- Home screen.
+- PDF reader.
+- Spreadsheet viewer.
+- Image workshop.
+- PDF workshop.
+
+Allow users to save multiple personal themes, duplicate existing themes, rename themes and restore original settings.
+
+Themes must never compromise text readability, accessibility or document accuracy.
+
+---
+
+# 5. HOME SCREEN AND DOCUMENT DASHBOARD
+
+Create a beautiful, functional home screen.
+
+The dashboard should offer immediate access to the application's main capabilities.
+
+Include:
+
+- Recently opened documents.
+- Recently opened PDFs.
+- Recently viewed spreadsheets.
+- Favourites.
+- Document search.
+- Open file.
+- PDF Reader.
+- Spreadsheet Viewer.
+- Image Workshop.
+- PDF Workshop.
+- Theme Gallery.
+- Settings.
+
+For recent documents, display:
+
+- Filename.
+- File type.
+- Last opened time.
+- File size where available.
+- Page count or worksheet count where applicable.
+
+Provide list and grid layouts.
+
+Allow users to remove history entries without deleting the original documents.
+
+Do not force a complicated folder-management structure.
+
+Use a clearly identifiable navigation system that adapts to the active theme.
+
+---
+
+# 6. PDF READER
+
+The integrated PDF reader is a core application feature.
+
+Paperly must function as a genuinely useful standalone PDF reader, not just a PDF preview attached to the conversion utilities.
+
+## 6.1 File Opening
+
+Support:
+
+- Opening local PDF files.
+- Android document picker.
+- Opening PDFs from recent documents.
+- Android native file-opening intents.
+- Opening compatible documents through Android sharing.
+- Restoring previously opened documents.
+- Remembering the last reading position.
+
+No file uploads or external processing.
+
+## 6.2 Reading Interface
+
+Implement:
+
+- Continuous vertical scrolling.
+- Single-page viewing.
+- Horizontal page navigation.
+- Page thumbnails.
+- Page number navigation.
+- Pinch-to-zoom.
+- Double-tap zoom.
+- Fit-to-width.
+- Fit-to-page.
+- Full-screen reading mode.
+- Page rotation.
+- Reading-position restoration.
+
+Render pages efficiently.
+
+Do not load an entire large document into memory unnecessarily.
+
+Use lazy rendering or an equivalent efficient document-rendering strategy.
+
+## 6.3 Text Interaction
+
+Provide:
+
+- Text selection.
+- Copy selected text.
+- Search inside documents.
+- Search result navigation.
+- Text selection handles.
+- Native Android interaction where supported.
+
+Clearly differentiate text-based PDFs from scanned documents.
+
+Do not claim scanned documents contain searchable text when they do not.
+
+Offline OCR can be considered as a separate future feature.
+
+## 6.4 Navigation and Bookmarks
+
+Implement:
+
+- Add bookmarks.
+- Remove bookmarks.
+- Bookmark navigation.
+- Recent reading positions.
+- Page thumbnails.
+- Document outline navigation where available.
+- Last-read page restoration.
+
+Persist reading positions and bookmarks locally.
+
+## 6.5 Dark Reading Experience
+
+Support:
+
+- Dark application interface.
+- Original PDF appearance.
+- Optional page-background adjustment where appropriate.
+- Optional document colour inversion.
+- Reading brightness adjustments where supported.
+
+Do not blindly invert every document.
+
+Preserve the original appearance by default because inversion can damage photographs, diagrams, charts and colour-sensitive content.
+
+## 6.6 PDF Information
+
+Display:
+
+- Document title.
+- Filename.
+- File size.
+- Page count.
+- PDF version where available.
+- Document metadata.
+- Creation information where available.
+- Author information.
+- Producer and creator application where available.
+
+Never invent unavailable metadata.
+
+---
+
+# 7. SPREADSHEET VIEWER
+
+Build a lightweight, read-only spreadsheet viewer.
+
+This is not intended to replace Microsoft Excel.
+
+Its purpose is to allow users to open, inspect, read and copy information from spreadsheets without installing a full spreadsheet-editing suite.
+
+## Supported Formats
+
+Implement support for:
+
+- XLSX.
+- CSV.
+- TSV.
+- XLS where compatibility permits.
+
+Identify limitations honestly.
+
+## Workbook Navigation
+
+Support:
+
+- Open local workbooks.
+- Multiple worksheets.
+- Worksheet tabs.
+- Sheet navigation.
+- Workbook information.
+- Recent spreadsheet history.
+
+## Spreadsheet Rendering
+
+Implement:
+
+- Row headers.
+- Column headers.
+- Cell selection.
+- Horizontal scrolling.
+- Vertical scrolling.
+- Copy individual cells.
+- Copy selected ranges.
+- Search within worksheets.
+- Zoom controls.
+- Freeze panes where supported.
+- Merged cells.
+- Basic fonts and formatting.
+- Cell background colours.
+- Borders.
+- Text alignment.
+- Number formatting.
+- Currency formatting.
+- Date formatting.
+- Percentage formatting.
+- Column widths.
+- Row heights where supported.
+
+Display formula expressions and cached calculated values where available.
+
+Do not pretend to recalculate complex formulas.
+
+Do not execute macros, VBA scripts or embedded executable content.
+
+Do not fetch external workbook references.
+
+## Performance
+
+Implement efficient rendering for large spreadsheets.
+
+Avoid rendering unlimited rows and columns simultaneously.
+
+Use appropriate lazy or virtualised rendering techniques.
+
+Maintain responsive scrolling and stable cell selection.
+
+The interface must remain legible across different themes.
+
+---
+
+# 8. IMAGE WORKSHOP
+
+Create a complete image-processing module.
+
+Users should be able to prepare photographs and images for uploads, applications, social media and document attachments.
+
+## Supported Formats
+
+Where technically supported:
+
+- JPEG / JPG.
+- PNG.
+- WebP.
+- HEIC / HEIF.
+- BMP.
+- TIFF.
+
+Detect the real file format rather than trusting extensions.
+
+Handle unsupported formats gracefully.
+
+## 8.1 Image Resizing
+
+Implement:
+
+- Custom width.
+- Custom height.
+- Maintain aspect ratio.
+- Independent dimensions.
+- Percentage resizing.
+- Resolution presets.
+- Social media presets.
+- Document-photo presets.
+- Custom dimensions.
+
+Provide immediate visual previews.
+
+## 8.2 Image Compression
+
+Provide:
+
+- Adjustable quality.
+- Target file size.
+- Quality presets.
+- Batch compression.
+- Before-and-after comparison.
+
+Display:
+
+- Original size.
+- Estimated output size.
+- Actual output size.
+- Compression ratio.
+- Quality information.
+
+Target file sizes are objectives, not guaranteed results.
+
+Do not destroy image quality simply to satisfy an arbitrary size.
+
+## 8.3 Image Conversion
+
+Support appropriate conversions between:
+
+- JPG.
+- PNG.
+- WebP.
+- HEIC/HEIF where supported.
+- Other available formats.
+
+Preserve transparency whenever possible.
+
+Warn when converting transparent images to formats that cannot preserve transparency.
+
+## 8.4 Batch Processing
+
+Allow multiple files to be processed together.
+
+Support:
+
+- Batch resizing.
+- Batch compression.
+- Batch conversion.
+- Batch renaming.
+- Folder-based selection through the Android document picker.
+- Processing queues.
+- Individual progress.
+- Failure reporting.
+
+## 8.5 Image-to-PDF
+
+Allow users to:
+
+- Select multiple images.
+- Reorder images.
+- Choose page orientation.
+- Choose page size.
+- Adjust margins.
+- Fit images to pages.
+- Preview the result.
+- Generate a multipage PDF.
+
+---
+
+# 9. PDF WORKSHOP
+
+Create a dedicated PDF manipulation interface.
+
+The PDF Reader and PDF Workshop should be separate but connected experiences.
+
+## 9.1 Merge PDFs
+
+Allow users to:
+
+- Select multiple documents.
+- Reorder documents.
+- Preview page sequences where practical.
+- Merge into one PDF.
+- Choose output filenames.
+
+## 9.2 Split PDFs
+
+Support:
+
+- Individual page extraction.
+- Page ranges.
+- Every N pages.
+- Custom page selections.
+
+## 9.3 Page Management
+
+Implement:
+
+- Reorder pages.
+- Rotate pages.
+- Extract pages.
+- Delete selected pages.
+- Duplicate pages.
+- Generate new PDFs from selected pages.
+
+Always preserve original files.
+
+## 9.4 PDF Compression
+
+Provide compression presets.
+
+Where possible:
+
+- Optimise embedded images.
+- Remove unnecessary metadata.
+- Optimise document structures.
+- Preserve vector content.
+- Preserve fonts where possible.
+
+Display original and resulting file sizes.
+
+Clearly identify lossy processing.
+
+Do not describe recompressed documents as losslessly compressed.
+
+## 9.5 PDF Annotation
+
+Provide basic annotation tools:
+
+- Freehand drawing.
+- Highlighting.
+- Underlining.
+- Text annotations.
+- Shapes.
+- Signature insertion.
+- Annotation colours.
+- Adjustable thickness.
+
+Allow saving the modified document as a new file.
+
+Preserve existing annotations wherever supported.
+
+Clarify that visual signature insertion is not the same as cryptographic digital signing.
+
+## 9.6 Export
+
+Provide:
+
+- Save as.
+- Rename output.
+- Export.
+- Share through Android's native sharing interface.
+- Open generated documents directly in Paperly.
+
+Never overwrite originals automatically.
+
+---
+
+# 10. DOCUMENT MANAGEMENT
+
+Keep organisation lightweight.
+
+Implement:
+
+- Recent files.
+- Favourites.
+- Document search.
+- Sorting by name.
+- Sorting by date.
+- Sorting by type.
+- Recently opened documents.
+- Clear recent history.
+- Local document history.
+
+Use the Android Storage Access Framework.
+
+Do not require unnecessary broad storage permissions.
+
+Do not silently delete or move original documents.
+
+---
+
+# 11. SETTINGS
+
+Create a comprehensive but approachable settings screen.
+
+### Appearance
+
+- Theme Gallery.
+- Custom Theme Studio.
+- Current theme.
+- Light mode.
+- Dark mode.
+- System appearance.
+- Accent colour.
+- Typography.
+- Interface density.
+- Animation settings.
+- Blur settings.
+
+### PDF Reader
+
+- Default zoom.
+- Scrolling direction.
+- Continuous scrolling.
+- Page transition.
+- Remember reading position.
+- Default reading appearance.
+- Full-screen reading.
+
+### Spreadsheet Viewer
+
+- Default zoom.
+- Grid visibility.
+- Row and column header visibility.
+- Default worksheet navigation.
+- Cell selection behaviour.
+
+### Image Workshop
+
+- Default output format.
+- Compression quality.
+- Filename suffix.
+- Export preferences.
+
+### PDF Workshop
+
+- Default page size.
+- Default compression preset.
+- Default output filename.
+- Preserve originals.
+
+### Storage
+
+- Recent history.
+- Clear temporary processing files.
+- Remove recent entries.
+- Theme management.
+- Export custom theme profiles.
+- Import custom theme profiles.
+
+Clearing application history must never delete user-created documents or exports.
+
+---
+
+# 12. PRIVACY AND OFFLINE ARCHITECTURE
+
+This is a strict requirement.
+
+Paperly must operate entirely offline.
+
+The final Android application must not communicate with external servers.
+
+Explicitly prohibit:
+
+- Analytics SDKs.
+- Advertising SDKs.
+- Tracking libraries.
+- Telemetry.
+- Crash-report uploads.
+- Cloud synchronisation.
+- Cloud document processing.
+- Accounts.
+- Registration.
+- Login.
+- Remote configuration.
+- External APIs.
+- Remote theme downloads.
+- Remote font downloads.
+- Periodic server pings.
+- Online licence verification.
+- Advertising identifiers.
+- Device fingerprinting.
+- Google Play Integrity checks.
+- SafetyNet checks.
+
+Do not include Android's INTERNET permission in the final merged application manifest.
+
+Audit direct and transitive dependencies.
+
+All fonts, theme assets, icons and required processing libraries must be locally available.
+
+The application must work in airplane mode from first launch through document opening, viewing, processing, exporting and local sharing.
+
+Do not introduce hidden background services or network-dependent fallbacks.
+
+All settings, bookmarks, theme configurations and recent history must be stored locally.
+
+---
+
+# 13. ANDROID TECHNOLOGY AND PROJECT STRUCTURE
+
+Use:
+
+- Kotlin.
+- Jetpack Compose.
+- Material 3 where appropriate.
+- A reusable custom design system.
+- Kotlin Coroutines.
+- Room where structured persistence is necessary.
+- DataStore for application preferences.
+- Android Storage Access Framework.
+- Appropriate local PDF-rendering libraries.
+- Suitable XLSX, CSV and TSV parsing libraries.
+- Local image-processing libraries.
+
+Separate major application components logically.
+
+Suggested architecture:
+
+- Core application.
+- Navigation.
+- Home dashboard.
+- PDF reader.
+- Spreadsheet viewer.
+- Image workshop.
+- PDF workshop.
+- Theme engine.
+- Theme gallery.
+- Theme Studio.
+- Storage and file access.
+- Export and sharing.
+- Local settings.
+
+Keep business logic separate from UI rendering.
+
+Use a maintainable architecture.
+
+Do not put the entire application into a single Activity or enormous composable.
+
+Select third-party dependencies according to licensing, compatibility, maintenance and actual capability.
+
+Document format limitations honestly.
+
+---
+
+# 14. PERFORMANCE AND RELIABILITY
+
+Requirements:
+
+- Fast startup.
+- Responsive navigation.
+- Efficient memory management.
+- Smooth document scrolling.
+- Large PDF handling.
+- Large spreadsheet handling.
+- Lazy rendering.
+- Background processing for lengthy operations.
+- Progress indicators.
+- Cancellable processing where safe.
+- No unnecessary image decoding.
+- No unnecessary document rewriting.
+- No unexpected background activity.
+- Reliable error recovery.
+
+Do not load an entire large document into memory merely to display one page.
+
+Handle malformed files, corrupted documents, unsupported formats and insufficient storage gracefully.
+
+Provide meaningful error messages.
+
+Preserve originals during all operations.
+
+---
+
+# 15. ACCESSIBILITY
+
+Implement:
+
+- Readable typography.
+- Adequate contrast.
+- Appropriate touch-target sizes.
+- Screen reader descriptions.
+- Adjustable font sizing.
+- Reduced-motion support.
+- Clear loading indicators.
+- Understandable errors.
+- Accessible navigation.
+
+Themes must never compromise document readability.
+
+Transparency, blur, gradients and textures should not make controls difficult to recognise.
+
+---
+
+# 16. COMPLETE BUILDABLE AND OPEN-SOURCE PROJECT
+
+This is particularly important.
+
+Deliver a complete Android Studio-compatible source project, not isolated Kotlin files or incomplete code snippets.
+
+Include:
+
+- Kotlin source files.
+- AndroidManifest.xml.
+- Root Gradle configuration.
+- App-level Gradle configuration.
+- settings.gradle.kts.
+- gradle.properties.
+- Gradle wrapper configuration.
+- Gradle wrapper scripts and JAR.
+- Android resources.
+- Locally bundled assets.
+- Required dependency declarations.
+- ProGuard/R8 configuration where needed.
+- README.md.
+- LICENSE file, using the explicitly selected project licence.
+
+The project must be independently buildable.
+
+Do not rely on undocumented files or manually created local configurations.
+
+## GitHub Actions Build Support
+
+Include a GitHub Actions workflow at:
+
+`.github/workflows/build-apk.yml`
+
+The workflow should:
+
+1. Check out the source code.
+2. Set up the compatible JDK.
+3. Install required Android SDK components.
+4. Use the committed Gradle wrapper.
+5. Build the debug APK.
+6. Upload the generated APK as a downloadable GitHub Actions artifact.
+
+Include an optional release-build workflow that supports user-supplied signing credentials through GitHub Actions Secrets.
+
+Never commit signing keys or passwords.
+
+The workflow should support manual execution through `workflow_dispatch`.
+
+Document how to download the generated APK from GitHub Actions.
+
+The debug build must remain suitable for local testing and independent distribution as an early preview.
+
+---
+
+# 17. DEVELOPMENT STAGES
+
+Build the application progressively.
+
+Do not generate a collection of attractive but non-functional screens.
+
+## Stage 1 — Foundation
+
+- Android project.
+- Navigation.
+- Home screen.
+- File selection.
+- Local persistence.
+- Default theme.
+- First-launch onboarding.
+
+## Stage 2 — PDF Reader
+
+- PDF opening.
+- Rendering.
+- Scrolling.
+- Zoom.
+- Search.
+- Text selection.
+- Bookmarks.
+- Reading-position restoration.
+
+## Stage 3 — Spreadsheet Viewer
+
+- XLSX.
+- CSV.
+- TSV.
+- XLS where feasible.
+- Worksheet navigation.
+- Cell selection.
+- Search.
+- Formatting display.
+- Performance optimisation.
+
+## Stage 4 — Image Workshop
+
+- Resizing.
+- Compression.
+- Conversion.
+- Batch processing.
+- Image-to-PDF.
+
+## Stage 5 — PDF Workshop
+
+- Merge.
+- Split.
+- Reorder.
+- Rotate.
+- Extract.
+- Compression.
+- Annotation.
+- Signature insertion.
+
+## Stage 6 — Theme System
+
+- Theme architecture.
+- 250+ genuinely distinct presets.
+- Theme gallery.
+- Search.
+- Favourites.
+- Live previews.
+- Custom Theme Studio.
+- Import and export.
+
+## Stage 7 — Final Polish
+
+- Animations.
+- Accessibility.
+- Performance.
+- File handling.
+- Offline verification.
+- GitHub build automation.
+- Application testing.
+
+Prioritise functional foundations over decorative features.
+
+Do not sacrifice PDF rendering, spreadsheet readability or document processing reliability to achieve more theme variations.
+
+---
+
+# 18. FINAL ACCEPTANCE TESTS
+
+The application is not complete merely because it compiles or looks attractive.
+
+Verify that:
+
+1. First-launch onboarding works.
+2. Users can skip onboarding.
+3. Theme selection persists.
+4. Custom themes can be created.
+5. The theme gallery works.
+6. Themes affect all major application screens.
+7. PDFs open reliably.
+8. Large PDFs render efficiently.
+9. Text selection and copying work.
+10. Document searching works.
+11. Bookmarks work.
+12. Reading position is restored.
+13. Spreadsheet files open.
+14. Worksheet navigation works.
+15. Cells can be selected and copied.
+16. Spreadsheet searching works.
+17. Images can be resized.
+18. Images can be compressed.
+19. Image conversion works.
+20. Batch processing works.
+21. Images can be converted into multipage PDFs.
+22. PDFs can be merged.
+23. PDFs can be split.
+24. PDF pages can be reordered and rotated.
+25. PDF compression produces valid output.
+26. Annotations can be exported.
+27. Recent documents work.
+28. Application settings persist.
+29. No original document is silently overwritten.
+30. The application functions without internet connectivity.
+31. The final merged manifest contains no INTERNET permission.
+32. The GitHub Actions workflow produces an installable APK.
+
+Do not label unimplemented features as complete.
+
+Do not use fake preview controls or placeholder functionality.
+
+---
+
+# FINAL PRODUCT VISION
+
+**PAPERLY — Your Documents. Your Workspace.**
+
+Create a lightweight, aesthetically exceptional and fully offline Android document workspace.
+
+Users should be able to read PDFs, view spreadsheets, resize images, compress photographs, create PDFs, merge documents and manage document pages without installing several separate applications.
+
+Give users complete control over the application's visual identity through an extensive collection of distinctive themes and a custom theme editor.
+
+Keep onboarding effortless:
+
+- Choose a professionally designed preset.
+- Create a personal theme.
+- Or skip and start using the application.
+
+Keep the software independent:
+
+- No accounts.
+- No advertisements.
+- No tracking.
+- No cloud processing.
+- No unnecessary permissions.
+- No runtime internet requirement.
+
+Deliver a complete, buildable Kotlin Android project, including GitHub Actions support for generating downloadable APKs.
+
+**Build a genuinely useful document workspace, not simply a collection of utilities sharing a home screen.**
