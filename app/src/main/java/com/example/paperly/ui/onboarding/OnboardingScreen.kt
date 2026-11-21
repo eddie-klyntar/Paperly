@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.R
 import com.example.paperly.theme.LocalPaperlyTheme
@@ -199,7 +200,8 @@ fun OnboardingScreen(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                 color = if (selected) previewSpec.accentColor else previewSpec.textSecondaryColor,
-                maxLines = 1
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
               )
             }
           }

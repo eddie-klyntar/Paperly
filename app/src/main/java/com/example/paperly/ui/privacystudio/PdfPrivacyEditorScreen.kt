@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -73,7 +74,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -555,20 +555,29 @@ fun PdfPrivacyEditorScreen(
                 Text("Zoom ${String.format("%.1fx", zoom)}", style = MaterialTheme.typography.labelSmall)
               }
               Slider(value = zoom, onValueChange = { zoom = it }, valueRange = 1f..2.5f)
-              Box(
+              BoxWithConstraints(
                 modifier = Modifier
                   .fillMaxWidth()
                   .clip(RoundedCornerShape(8.dp))
                   .border(1.dp, spec.borderColor, RoundedCornerShape(8.dp))
-                  .graphicsLayer(scaleX = zoom, scaleY = zoom)
               ) {
-                Box(modifier = Modifier.fillMaxWidth().aspectRatio(aspect)) {
-                  Image(
-                    bitmap = bmp.asImageBitmap(),
-                    contentDescription = "PDF privacy page ${currentPage + 1}",
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.fillMaxSize()
-                  )
+                val baseW = maxWidth
+                Box(
+                  modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState(), enabled = zoom > 1.02f)
+                ) {
+                  Box(
+                    modifier = Modifier
+                      .width(baseW * zoom)
+                      .aspectRatio(aspect)
+                  ) {
+                    Image(
+                      bitmap = bmp.asImageBitmap(),
+                      contentDescription = "PDF privacy page ${currentPage + 1}",
+                      contentScale = ContentScale.FillBounds,
+                      modifier = Modifier.fillMaxSize()
+                    )
                   Canvas(
                     modifier = Modifier
                       .fillMaxSize()
@@ -689,6 +698,7 @@ fun PdfPrivacyEditorScreen(
             }
           }
         }
+      }
 
         // Mode-Specific Styling & Strategy
         PaperlySurfaceCard(spec = spec, modifier = Modifier.fillMaxWidth()) {

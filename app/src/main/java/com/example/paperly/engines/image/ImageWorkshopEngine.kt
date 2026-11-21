@@ -109,10 +109,11 @@ class ImageWorkshopEngine(private val context: Context) {
       val name = queryName(uri) ?: "image"
       val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
         ?: error("Unable to open image.")
+      if (bytes.isEmpty()) error("This image file is empty (0 bytes).")
       val format = detectFormatByMagicBytes(bytes)
       val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
       BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-      if (opts.outWidth <= 0 || opts.outHeight <= 0) {
+      if (opts.outWidth <= 0 || opts.outHeight <= 0 || (format == "Unknown" && opts.outMimeType.isNullOrBlank())) {
         error("Unsupported or corrupted image ($format).")
       }
       val sampleBmp = decodeNormalizedBitmap(bytes, maxDimension = 512)
@@ -356,8 +357,14 @@ class ImageWorkshopEngine(private val context: Context) {
   }
 
   private fun decodeNormalizedBitmap(bytes: ByteArray, maxDimension: Int): Bitmap {
+    if (bytes.isEmpty()) error("Image file is empty (0 bytes).")
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0 ||
+      (detectFormatByMagicBytes(bytes) == "Unknown" && bounds.outMimeType.isNullOrBlank())
+    ) {
+      error("Unsupported or corrupted image file.")
+    }
     var sample = 1
     while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) {
       sample *= 2

@@ -654,8 +654,14 @@ class ImagePrivacyEngine(private val context: Context) {
   }
 
   private fun decodeNormalizedBitmap(bytes: ByteArray, maxDimension: Int): Bitmap {
+    if (bytes.isEmpty()) error("Image file is empty (0 bytes).")
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+    if (bounds.outWidth <= 0 || bounds.outHeight <= 0 ||
+      (!hasSupportedImageMagic(bytes) && bounds.outMimeType.isNullOrBlank())
+    ) {
+      error("Unsupported or corrupted image file.")
+    }
     var sample = 1
     while (bounds.outWidth / sample > maxDimension || bounds.outHeight / sample > maxDimension) {
       sample *= 2
@@ -681,6 +687,18 @@ class ImagePrivacyEngine(private val context: Context) {
     } else raw
     return if (rotated.config == Bitmap.Config.ARGB_8888) rotated
     else rotated.copy(Bitmap.Config.ARGB_8888, true).also { rotated.recycle() }
+  }
+
+  private fun hasSupportedImageMagic(bytes: ByteArray): Boolean {
+    if (bytes.size < 12) return false
+    return (bytes[0] == 0xFF.toByte() && bytes[1] == 0xD8.toByte() && bytes[2] == 0xFF.toByte()) ||
+      (bytes[0] == 0x89.toByte() && bytes[1] == 0x50.toByte() && bytes[2] == 0x4E.toByte() && bytes[3] == 0x47.toByte()) ||
+      (bytes[0] == 'R'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte() && bytes[3] == 'F'.code.toByte() &&
+        bytes[8] == 'W'.code.toByte() && bytes[9] == 'E'.code.toByte()) ||
+      (bytes[0] == 'B'.code.toByte() && bytes[1] == 'M'.code.toByte()) ||
+      ((bytes[0] == 'I'.code.toByte() && bytes[1] == 'I'.code.toByte()) || (bytes[0] == 'M'.code.toByte() && bytes[1] == 'M'.code.toByte())) ||
+      (bytes[4] == 'f'.code.toByte() && bytes[5] == 't'.code.toByte() && bytes[6] == 'y'.code.toByte() && bytes[7] == 'p'.code.toByte()) ||
+      (bytes[0] == 'G'.code.toByte() && bytes[1] == 'I'.code.toByte() && bytes[2] == 'F'.code.toByte())
   }
 
   private fun queryName(uri: Uri): String? = runCatching {

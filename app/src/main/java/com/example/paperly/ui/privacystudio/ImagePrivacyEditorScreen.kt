@@ -16,6 +16,7 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +53,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -72,7 +74,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -209,6 +210,13 @@ fun ImagePrivacyEditorScreen(
       errorMsg = res.exceptionOrNull()?.localizedMessage ?: "Failed to decode image."
     }
     isBusy = false
+  }
+
+  DisposableEffect(Unit) {
+    onDispose {
+      previewRenderedBitmap = null
+      sourceBitmap = null
+    }
   }
 
   LaunchedEffect(isLivePreview, operations.size, sourceBitmap) {
@@ -395,24 +403,29 @@ fun ImagePrivacyEditorScreen(
               }
               Slider(value = zoom, onValueChange = { zoom = it }, valueRange = 1f..2.5f)
 
-              Box(
+              BoxWithConstraints(
                 modifier = Modifier
                   .fillMaxWidth()
                   .clip(RoundedCornerShape(8.dp))
                   .border(1.dp, spec.borderColor, RoundedCornerShape(8.dp))
-                  .graphicsLayer(scaleX = zoom, scaleY = zoom)
               ) {
+                val baseW = maxWidth
                 Box(
                   modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(aspect)
+                    .horizontalScroll(rememberScrollState(), enabled = zoom > 1.02f)
                 ) {
-                  Image(
-                    bitmap = activeBmp.asImageBitmap(),
-                    contentDescription = "Image privacy workspace",
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.fillMaxSize()
-                  )
+                  Box(
+                    modifier = Modifier
+                      .width(baseW * zoom)
+                      .aspectRatio(aspect)
+                  ) {
+                    Image(
+                      bitmap = activeBmp.asImageBitmap(),
+                      contentDescription = "Image privacy workspace",
+                      contentScale = ContentScale.FillBounds,
+                      modifier = Modifier.fillMaxSize()
+                    )
 
                   if (!isLivePreview) {
                     Canvas(
@@ -532,7 +545,8 @@ fun ImagePrivacyEditorScreen(
               }
             }
           }
-        } else if (!isBusy) {
+        }
+      } else if (!isBusy) {
           PaperlySurfaceCard(spec = spec, modifier = Modifier.fillMaxWidth()) {
             Text(
               "Pick an image from the Photo Picker or Files above to start redacting, blurring or anonymising locally.",

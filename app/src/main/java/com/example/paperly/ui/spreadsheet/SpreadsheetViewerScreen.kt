@@ -58,9 +58,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontStyle
@@ -79,7 +83,9 @@ import com.example.paperly.engines.spreadsheet.SpreadsheetWorkbook
 import com.example.paperly.theme.LocalPaperlyTheme
 import com.example.paperly.theme.PaperlyCanvasBackground
 import com.example.paperly.theme.PaperlySurfaceCard
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun SpreadsheetViewerScreen(
@@ -92,6 +98,7 @@ fun SpreadsheetViewerScreen(
   val spec = LocalPaperlyTheme.current
   val context = LocalContext.current
   val clipboard = LocalClipboardManager.current
+  val density = LocalDensity.current
   val scope = rememberCoroutineScope()
 
   val openSheetLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -109,15 +116,34 @@ fun SpreadsheetViewerScreen(
 
   var selectedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
   var rangeAnchor by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+  var showCellDetailDialog by remember { mutableStateOf(false) }
 
   var showSearch by remember { mutableStateOf(false) }
   var searchQuery by remember { mutableStateOf("") }
   var searchMatches by remember { mutableStateOf<List<CellSearchMatch>>(emptyList()) }
   var activeMatchIdx by remember { mutableIntStateOf(0) }
+  var isSearching by remember { mutableStateOf(false) }
+  var hasSearched by remember(sheetUri) { mutableStateOf(false) }
   var showInfoDialog by remember { mutableStateOf(false) }
 
   val verticalListState = rememberLazyListState()
   val horizontalScrollState = rememberScrollState()
+
+  suspend fun scrollToCellMatch(wb: SpreadsheetWorkbook, hit: CellSearchMatch) {
+    val ws = wb.worksheets.getOrNull(hit.sheetIndex) ?: return
+    val startRow = ws.freezeRows.coerceIn(0, ws.rows.size)
+    if (hit.row >= startRow) {
+      verticalListState.scrollToItem((hit.row - startRow).coerceAtLeast(0))
+    } else {
+      verticalListState.scrollToItem(0)
+    }
+    var xDp = 0f
+    for (c in 0 until hit.col.coerceAtMost(ws.columnWidthsDp.size)) {
+      xDp += ws.columnWidthsDp[c] * zoom
+    }
+    val xPx = with(density) { xDp.dp.toPx() }.toInt()
+    horizontalScrollState.scrollTo(xPx)
+  }
 
   LaunchedEffect(sheetUri) {
     workbook = null
@@ -245,21 +271,36 @@ fun SpreadsheetViewerScreen(
               ) {
                 OutlinedTextField(
                   value = searchQuery,
-                  onValueChange = { searchQuery = it },
+                  onValueChange = {
+                    searchQuery = it
+                    hasSearched = false
+                  },
                   placeholder = { Text("Search cells or formulas...") },
                   singleLine = true,
                   modifier = Modifier.weight(1f).testTag("sheet_search_input")
                 )
-                Button(onClick = {
-                  val wb = workbook ?: return@Button
-                  searchMatches = spreadsheetEngine.searchWorkbook(wb, searchQuery)
-                  activeMatchIdx = 0
-                  searchMatches.firstOrNull()?.let { m ->
-                    activeSheetIdx = m.sheetIndex
-                    selectedCell = m.row to m.col
-                    scope.launch { verticalListState.scrollToItem(m.row) }
-                  }
-                }) { Text("Find") }
+                Button(
+                  onClick = {
+                    val wb = workbook ?: return@Button
+                    scope.launch {
+                      isSearching = true
+                      val matches = withContext(Dispatchers.Default) {
+                        spreadsheetEngine.searchWorkbook(wb, searchQuery)
+                      }
+                      searchMatches = matches
+                      activeMatchIdx = 0
+                      hasSearched = true
+                      isSearching = false
+                      matches.firstOrNull()?.let { m ->
+                        activeSheetIdx = m.sheetIndex
+                        selectedCell = m.row to m.col
+                        scrollToCellMatch(wb, m)
+                      }
+                    }
+                  },
+                  enabled = !isSearching && searchQuery.isNotBlank(),
+                  modifier = Modifier.minimumInteractiveComponentSize()
+                ) { Text(if (isSearching) "..." else "Find") }
               }
               if (searchMatches.isNotEmpty()) {
                 val m = searchMatches[activeMatchIdx.coerceIn(0, searchMatches.lastIndex)]
@@ -277,26 +318,40 @@ fun SpreadsheetViewerScreen(
                     modifier = Modifier.weight(1f)
                   )
                   Row {
-                    IconButton(onClick = {
-                      activeMatchIdx = if (activeMatchIdx <= 0) searchMatches.lastIndex else activeMatchIdx - 1
-                      val hit = searchMatches[activeMatchIdx]
-                      activeSheetIdx = hit.sheetIndex
-                      selectedCell = hit.row to hit.col
-                      scope.launch { verticalListState.scrollToItem(hit.row) }
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous hit") }
-                    IconButton(onClick = {
-                      activeMatchIdx = (activeMatchIdx + 1) % searchMatches.size
-                      val hit = searchMatches[activeMatchIdx]
-                      activeSheetIdx = hit.sheetIndex
-                      selectedCell = hit.row to hit.col
-                      scope.launch { verticalListState.scrollToItem(hit.row) }
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next hit") }
+                    IconButton(
+                      onClick = {
+                        val wb = workbook ?: return@IconButton
+                        activeMatchIdx = if (activeMatchIdx <= 0) searchMatches.lastIndex else activeMatchIdx - 1
+                        val hit = searchMatches[activeMatchIdx]
+                        activeSheetIdx = hit.sheetIndex
+                        selectedCell = hit.row to hit.col
+                        scope.launch { scrollToCellMatch(wb, hit) }
+                      },
+                      modifier = Modifier.minimumInteractiveComponentSize()
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous hit") }
+                    IconButton(
+                      onClick = {
+                        val wb = workbook ?: return@IconButton
+                        activeMatchIdx = (activeMatchIdx + 1) % searchMatches.size
+                        val hit = searchMatches[activeMatchIdx]
+                        activeSheetIdx = hit.sheetIndex
+                        selectedCell = hit.row to hit.col
+                        scope.launch { scrollToCellMatch(wb, hit) }
+                      },
+                      modifier = Modifier.minimumInteractiveComponentSize()
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next hit") }
                   }
                 }
+              } else if (hasSearched && !isSearching && searchQuery.isNotBlank()) {
+                Text(
+                  text = "No matching cells found for \"$searchQuery\".",
+                  style = MaterialTheme.typography.labelSmall,
+                  color = spec.textSecondaryColor
+                )
               }
             }
 
-            // Selected Cell Inspector Bar
+            // Selected Cell Inspector Bar (tap to inspect full cell text)
             val ws = workbook!!.worksheets.getOrNull(activeSheetIdx)
             val sel = selectedCell
             if (ws != null && sel != null) {
@@ -305,6 +360,7 @@ fun SpreadsheetViewerScreen(
                 modifier = Modifier
                   .fillMaxWidth()
                   .background(spec.selectedContainerColor, RoundedCornerShape(8.dp))
+                  .clickable { showCellDetailDialog = true }
                   .padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -312,7 +368,7 @@ fun SpreadsheetViewerScreen(
                 Column(modifier = Modifier.weight(1f)) {
                   val ref = "${spreadsheetEngine.columnLabel(sel.second)}${sel.first + 1}"
                   Text(
-                    text = if (cell?.formula != null) "$ref  fx ${cell.formula}" else ref,
+                    text = if (cell?.formula != null) "$ref  fx ${cell.formula}" else "$ref (tap to expand)",
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = spec.monoFont.toComposeFontFamily(),
                     color = spec.accentColor
@@ -551,6 +607,56 @@ fun SpreadsheetViewerScreen(
       confirmButton = { TextButton(onClick = { showInfoDialog = false }) { Text("Close") } }
     )
   }
+  if (showCellDetailDialog && workbook != null && selectedCell != null) {
+    val ws = workbook!!.worksheets.getOrNull(activeSheetIdx)
+    val sel = selectedCell!!
+    val cell = ws?.rows?.getOrNull(sel.first)?.getOrNull(sel.second)
+    val ref = "${spreadsheetEngine.columnLabel(sel.second)}${sel.first + 1}"
+    AlertDialog(
+      onDismissRequest = { showCellDetailDialog = false },
+      title = { Text("Cell $ref (${ws?.name ?: "Sheet"})") },
+      text = {
+        Column(
+          modifier = Modifier.verticalScroll(rememberScrollState()),
+          verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+          if (cell?.formula != null) {
+            Text("Formula", style = MaterialTheme.typography.labelMedium, color = spec.accentColor)
+            SelectionContainer {
+              Text(cell.formula, style = MaterialTheme.typography.bodySmall, fontFamily = spec.monoFont.toComposeFontFamily())
+            }
+          }
+          Text("Value", style = MaterialTheme.typography.labelMedium, color = spec.accentColor)
+          SelectionContainer {
+            Text(cell?.displayText?.ifBlank { "(empty)" } ?: "(empty)", style = MaterialTheme.typography.bodyMedium)
+          }
+        }
+      },
+      confirmButton = {
+        Button(onClick = {
+          clipboard.setText(AnnotatedString(cell?.displayText ?: ""))
+          Toast.makeText(context, "Copied cell value", Toast.LENGTH_SHORT).show()
+        }) {
+          Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp))
+          Spacer(Modifier.width(4.dp))
+          Text("Copy")
+        }
+      },
+      dismissButton = { TextButton(onClick = { showCellDetailDialog = false }) { Text("Close") } }
+    )
+  }
+}
+
+fun resolveSpreadsheetCellTextColor(
+  isSelected: Boolean,
+  bgColorArgb: Long?,
+  textColorArgb: Long?,
+  fallbackThemeTextColor: Color
+): Color = when {
+  isSelected -> fallbackThemeTextColor
+  textColorArgb != null && bgColorArgb != null -> Color(textColorArgb)
+  bgColorArgb != null -> if (Color(bgColorArgb).luminance() > 0.45f) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+  else -> fallbackThemeTextColor
 }
 
 @Composable
@@ -591,10 +697,12 @@ private fun SpreadsheetRowView(
         isFrozenHeader -> spec.surfaceVariantColor.copy(alpha = 0.7f)
         else -> spec.surfaceColor
       }
-      val txtColor = when {
-        cell.textColorArgb != null && cell.bgColorArgb != null -> Color(cell.textColorArgb)
-        else -> spec.textPrimaryColor
-      }
+      val txtColor = resolveSpreadsheetCellTextColor(
+        isSelected = isSelected,
+        bgColorArgb = cell.bgColorArgb,
+        textColorArgb = cell.textColorArgb,
+        fallbackThemeTextColor = spec.textPrimaryColor
+      )
       Box(
         modifier = Modifier
           .width(w)

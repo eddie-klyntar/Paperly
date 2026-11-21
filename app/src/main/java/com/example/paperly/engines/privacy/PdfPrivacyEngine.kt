@@ -151,8 +151,10 @@ class PdfPrivacyEngine(
 
         var unstrippedFormXObjectsEncountered = false
         val rasterisedPages = mutableSetOf<Int>()
+        val failedRasterPages = mutableSetOf<Int>()
 
         try {
+          if (origBytes <= 0L) error("This PDF file is empty (0 bytes).")
           PDDocument.load(temp).use { srcDoc ->
             if (srcDoc.isEncrypted && !srcDoc.currentAccessPermission.canModify()) {
               error("This PDF has modification restrictions or encryption that prevent safe redaction.")
@@ -165,7 +167,8 @@ class PdfPrivacyEngine(
             PDDocument().use { outDoc ->
               for (pageIdx in 0 until srcDoc.numberOfPages) {
                 val pageOps = opsByPage[pageIdx].orEmpty()
-                val needsRaster = pageOps.any { it.mode == PrivacyEditMode.BLUR_PIXELATE } ||
+                val hasBlurOps = pageOps.any { it.mode == PrivacyEditMode.BLUR_PIXELATE }
+                val needsRaster = hasBlurOps ||
                   (pageOps.isNotEmpty() && config.strategy == PdfRedactionStrategy.RASTERIZE_AFFECTED_PAGES)
 
                 if (needsRaster && pageOps.isNotEmpty()) {
@@ -174,15 +177,20 @@ class PdfPrivacyEngine(
                     imagePrivacyEngine.applyOperationsToBitmap(rasterBmp, pageOps)
                     val srcPage = srcDoc.getPage(pageIdx)
                     val box = srcPage.cropBox ?: srcPage.mediaBox
-                    val newPage = PDPage(PDRectangle(box.width, box.height))
+                    val rot = ((srcPage.rotation % 360) + 360) % 360
+                    val pageW = if (rot == 90 || rot == 270) box.height else box.width
+                    val pageH = if (rot == 90 || rot == 270) box.width else box.height
+                    val newPage = PDPage(PDRectangle(pageW, pageH))
                     outDoc.addPage(newPage)
                     val pdImg = LosslessFactory.createFromImage(outDoc, rasterBmp)
                     PDPageContentStream(outDoc, newPage).use { cs ->
-                      cs.drawImage(pdImg, 0f, 0f, box.width, box.height)
+                      cs.drawImage(pdImg, 0f, 0f, pageW, pageH)
                     }
                     rasterBmp.recycle()
                     rasterisedPages.add(pageIdx)
                     continue
+                  } else if (hasBlurOps) {
+                    failedRasterPages.add(pageIdx)
                   }
                 }
 
@@ -229,6 +237,7 @@ class PdfPrivacyEngine(
             originalBytes = origBytes,
             config = config,
             rasterisedPages = rasterisedPages,
+            failedRasterPages = failedRasterPages,
             complexXObjectWarning = unstrippedFormXObjectsEncountered
           )
 
@@ -267,6 +276,9 @@ class PdfPrivacyEngine(
     val box = page.cropBox ?: page.mediaBox
     val pageW = box.width.takeIf { it > 0f } ?: 595f
     val pageH = box.height.takeIf { it > 0f } ?: 842f
+    val pageRot = ((page.rotation % 360) + 360) % 360
+    val visualPageW = if (pageRot == 90 || pageRot == 270) pageH else pageW
+    val visualPageH = if (pageRot == 90 || pageRot == 270) pageW else pageH
 
     val tracker = object : PDFTextStripper() {
       private var topOpIdx = 0
@@ -297,16 +309,7 @@ class PdfPrivacyEngine(
             val glyphs = capturedGlyphs.toList()
             if (glyphs.isNotEmpty()) {
               val redactedFlags = glyphs.map { g ->
-                val gx = g.xDirAdj
-                val gy = g.yDirAdj
-                val gw = g.widthDirAdj.coerceAtLeast(1f)
-                val gh = g.heightDir.coerceAtLeast(4f)
-                val gRect = NormRect(
-                  left = (gx / pageW).coerceIn(0f, 1f),
-                  top = ((gy - gh * 1.0f) / pageH).coerceIn(0f, 1f),
-                  right = ((gx + gw) / pageW).coerceIn(0f, 1f),
-                  bottom = ((gy + gh * 0.2f) / pageH).coerceIn(0f, 1f)
-                ).normalized()
+                val gRect = textPositionToVisualNormRect(g, visualPageW, visualPageH)
                 targetRects.any { r -> r.intersects(gRect, padding = 0.002f) }
               }
               val anyRedacted = redactedFlags.any { it }
@@ -347,8 +350,9 @@ class PdfPrivacyEngine(
     // overwrite those image pixels directly in the underlying PDImageXObject!
     var modifiedImages = 0
     val imageBBoxes = findImageBoundingBoxes(page, pageW, pageH)
-    imageBBoxes.forEach { (cosName, imgNormRect) ->
-      val overlappingOps = pageOps.filter { it.rect.normalized().intersects(imgNormRect, padding = 0.002f) }
+    imageBBoxes.forEach { (cosName, unrotatedImgNormRect) ->
+      val visualImgRect = unrotatedToVisualRect(unrotatedImgNormRect, pageRot)
+      val overlappingOps = pageOps.filter { it.rect.normalized().intersects(visualImgRect, padding = 0.002f) }
       if (overlappingOps.isNotEmpty()) {
         val xObj = runCatching { page.resources?.getXObject(cosName) }.getOrNull()
         if (xObj is PDImageXObject) {
@@ -357,12 +361,12 @@ class PdfPrivacyEngine(
             val mutable = srcBmp.copy(Bitmap.Config.ARGB_8888, true)
             if (srcBmp != mutable) srcBmp.recycle()
             val mappedOps = overlappingOps.map { op ->
-              val r = op.rect.normalized()
+              val r = visualToUnrotatedRect(op.rect.normalized(), pageRot)
               val mappedRect = NormRect(
-                left = ((r.left - imgNormRect.left) / imgNormRect.width.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
-                top = ((r.top - imgNormRect.top) / imgNormRect.height.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
-                right = ((r.right - imgNormRect.left) / imgNormRect.width.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
-                bottom = ((r.bottom - imgNormRect.top) / imgNormRect.height.coerceAtLeast(0.0001f)).coerceIn(0f, 1f)
+                left = ((r.left - unrotatedImgNormRect.left) / unrotatedImgNormRect.width.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
+                top = ((r.top - unrotatedImgNormRect.top) / unrotatedImgNormRect.height.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
+                right = ((r.right - unrotatedImgNormRect.left) / unrotatedImgNormRect.width.coerceAtLeast(0.0001f)).coerceIn(0f, 1f),
+                bottom = ((r.bottom - unrotatedImgNormRect.top) / unrotatedImgNormRect.height.coerceAtLeast(0.0001f)).coerceIn(0f, 1f)
               )
               op.copy(rect = mappedRect, shape = PrivacySelectionShape.RECTANGLE)
             }
@@ -592,6 +596,31 @@ class PdfPrivacyEngine(
     return result
   }
 
+  private fun visualToUnrotatedPoint(vx: Float, vy: Float, rotationDeg: Int): Pair<Float, Float> =
+    when (((rotationDeg % 360) + 360) % 360) {
+      90 -> vy to (1f - vx)
+      180 -> (1f - vx) to (1f - vy)
+      270 -> (1f - vy) to vx
+      else -> vx to vy
+    }
+
+  private fun visualToUnrotatedRect(rect: NormRect, rotationDeg: Int): NormRect {
+    val nr = rect.normalized()
+    val p1 = visualToUnrotatedPoint(nr.left, nr.top, rotationDeg)
+    val p2 = visualToUnrotatedPoint(nr.right, nr.bottom, rotationDeg)
+    return NormRect(
+      left = min(p1.first, p2.first),
+      top = min(p1.second, p2.second),
+      right = max(p1.first, p2.first),
+      bottom = max(p1.second, p2.second)
+    ).normalized()
+  }
+
+  private fun unrotatedToVisualRect(rect: NormRect, rotationDeg: Int): NormRect {
+    val inv = (360 - (((rotationDeg % 360) + 360) % 360)) % 360
+    return visualToUnrotatedRect(rect, inv)
+  }
+
   private fun drawPrivacyOverlaysOnPage(
     doc: PDDocument,
     page: PDPage,
@@ -602,10 +631,11 @@ class PdfPrivacyEngine(
     val ph = box.height
     val ox = box.lowerLeftX
     val oy = box.lowerLeftY
+    val pageRot = ((page.rotation % 360) + 360) % 360
 
     PDPageContentStream(doc, page, PDPageContentStream.AppendMode.APPEND, true, true).use { cs ->
       pageOps.forEach { op ->
-        val nr = op.rect.normalized()
+        val nr = visualToUnrotatedRect(op.rect, pageRot)
         val x = ox + nr.left * pw
         val y = oy + (1f - nr.bottom) * ph
         val w = (nr.width * pw).coerceAtLeast(2f)
@@ -617,11 +647,11 @@ class PdfPrivacyEngine(
             cs.saveGraphicsState()
             cs.setNonStrokingColor(Color.red(c), Color.green(c), Color.blue(c))
             if (op.shape == PrivacySelectionShape.FREEHAND && op.points.size >= 3) {
-              val first = op.points.first()
-              cs.moveTo(ox + first.x * pw, oy + (1f - first.y) * ph)
+              val first = visualToUnrotatedPoint(op.points.first().x, op.points.first().y, pageRot)
+              cs.moveTo(ox + first.first * pw, oy + (1f - first.second) * ph)
               for (i in 1 until op.points.size) {
-                val pt = op.points[i]
-                cs.lineTo(ox + pt.x * pw, oy + (1f - pt.y) * ph)
+                val pt = visualToUnrotatedPoint(op.points[i].x, op.points[i].y, pageRot)
+                cs.lineTo(ox + pt.first * pw, oy + (1f - pt.second) * ph)
               }
               cs.closePath()
               cs.fill()
@@ -632,7 +662,7 @@ class PdfPrivacyEngine(
             if (op.optionalLabel.isNotBlank()) {
               val lum = (Color.red(c) * 299 + Color.green(c) * 587 + Color.blue(c) * 114) / 1000
               val tc = if (lum > 135) Color.BLACK else Color.WHITE
-              drawPdfBoxCenteredText(cs, op.optionalLabel, x, y, w, h, 10f, PDType1Font.HELVETICA_BOLD, tc, TextAlignOption.CENTER)
+              drawPdfBoxCenteredText(cs, op.optionalLabel, x, y, w, h, 10f, PDType1Font.HELVETICA_BOLD, tc, TextAlignOption.CENTER, pageRot)
             }
             cs.restoreGraphicsState()
           }
@@ -658,7 +688,8 @@ class PdfPrivacyEngine(
               requestedSize = cfg.fontSizeSp,
               font = font,
               textColorArgb = cfg.textColorArgb,
-              align = cfg.alignment
+              align = cfg.alignment,
+              pageRot = pageRot
             )
             cs.restoreGraphicsState()
           }
@@ -678,27 +709,37 @@ class PdfPrivacyEngine(
     requestedSize: Float,
     font: PDType1Font,
     textColorArgb: Int,
-    align: TextAlignOption
+    align: TextAlignOption,
+    pageRot: Int = 0
   ) {
     val safe = rawText.replace(Regex("[^\\x20-\\x7E]"), "?")
-    var size = requestedSize.coerceIn(6f, max(7f, h * 0.78f))
-    val textW = runCatching { (font.getStringWidth(safe) / 1000f) * size }.getOrDefault(w * 0.8f)
-    if (textW > w - 4f && textW > 0f) {
-      size = (size * ((w - 4f) / textW)).coerceAtLeast(5.5f)
+    val effW = if (pageRot == 90 || pageRot == 270) h else w
+    val effH = if (pageRot == 90 || pageRot == 270) w else h
+    var size = requestedSize.coerceIn(6f, max(7f, effH * 0.78f))
+    val textW = runCatching { (font.getStringWidth(safe) / 1000f) * size }.getOrDefault(effW * 0.8f)
+    if (textW > effW - 4f && textW > 0f) {
+      size = (size * ((effW - 4f) / textW)).coerceAtLeast(5.5f)
     }
-    val finalW = runCatching { (font.getStringWidth(safe) / 1000f) * size }.getOrDefault(w * 0.5f)
-    val tx = when (align) {
-      TextAlignOption.LEFT -> x + 2f
-      TextAlignOption.CENTER -> x + ((w - finalW) / 2f).coerceAtLeast(1f)
-      TextAlignOption.RIGHT -> (x + w - finalW - 2f).coerceAtLeast(x + 1f)
+    val finalW = runCatching { (font.getStringWidth(safe) / 1000f) * size }.getOrDefault(effW * 0.5f)
+    val localX = when (align) {
+      TextAlignOption.LEFT -> -effW / 2f + 2f
+      TextAlignOption.CENTER -> -finalW / 2f
+      TextAlignOption.RIGHT -> (effW / 2f - finalW - 2f).coerceAtLeast(-effW / 2f + 1f)
     }
-    val ty = y + ((h - size * 0.72f) / 2f).coerceAtLeast(1f)
+    val localY = -size * 0.36f
+
+    cs.saveGraphicsState()
+    cs.transform(com.tom_roush.pdfbox.util.Matrix.getTranslateInstance(x + w / 2f, y + h / 2f))
+    if (pageRot != 0) {
+      cs.transform(com.tom_roush.pdfbox.util.Matrix.getRotateInstance(Math.toRadians(pageRot.toDouble()), 0f, 0f))
+    }
     cs.beginText()
     cs.setFont(font, size)
     cs.setNonStrokingColor(Color.red(textColorArgb), Color.green(textColorArgb), Color.blue(textColorArgb))
-    cs.newLineAtOffset(tx, ty)
+    cs.newLineAtOffset(localX, localY)
     cs.showText(safe)
     cs.endText()
+    cs.restoreGraphicsState()
   }
 
   private fun cleanPageAnnotations(
@@ -717,7 +758,8 @@ class PdfPrivacyEngine(
     val ph = box.height.takeIf { it > 0f } ?: 842f
     val ox = box.lowerLeftX
     val oy = box.lowerLeftY
-    val targetRects = pageOps.map { it.rect.normalized() }
+    val pageRot = ((page.rotation % 360) + 360) % 360
+    val targetRects = pageOps.map { visualToUnrotatedRect(it.rect, pageRot) }
     val kept = annots.filter { annot ->
       val r = annot.rectangle ?: return@filter true
       val norm = NormRect(
@@ -753,6 +795,7 @@ class PdfPrivacyEngine(
     originalBytes: Long,
     config: PdfPrivacyConfig,
     rasterisedPages: Set<Int> = emptySet(),
+    failedRasterPages: Set<Int> = emptySet(),
     complexXObjectWarning: Boolean = false
   ): PrivacyVerificationReport {
     val checks = mutableListOf<PrivacyVerificationCheck>()
@@ -890,6 +933,16 @@ class PdfPrivacyEngine(
         )
       )
 
+      if (failedRasterPages.isNotEmpty()) {
+        checks.add(
+          PrivacyVerificationCheck(
+            itemName = "Blur rasterisation (${failedRasterPages.size} page(s))",
+            status = VerificationStatus.REMOVAL_FAILED,
+            detail = "Device renderer could not rasterise page(s) ${failedRasterPages.sorted().joinToString(", ") { (it + 1).toString() }} for blur/pixelation."
+          )
+        )
+        warnings.add("Blur/pixelate could not be rasterised on page(s) ${failedRasterPages.sorted().joinToString(", ") { (it + 1).toString() }}; use Permanent Redaction instead.")
+      }
       if (rasterisedPages.isNotEmpty()) {
         warnings.add(
           "Page(s) ${rasterisedPages.sorted().joinToString(", ") { (it + 1).toString() }} were rasterised to images; text selection and vector crispness were removed on those pages."

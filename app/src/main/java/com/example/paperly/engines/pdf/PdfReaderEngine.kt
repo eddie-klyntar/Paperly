@@ -63,32 +63,40 @@ class PdfSession(
 
   suspend fun renderPage(pageIndex: Int, targetWidthPx: Int, rotationDegrees: Int = 0): Bitmap? =
     withContext(Dispatchers.IO) {
-      if (pageIndex < 0 || pageIndex >= pageCount) return@withContext null
       val safeWidth = targetWidthPx.coerceIn(120, 2200)
       val cacheKey = "${pageIndex}_${safeWidth}_$rotationDegrees"
       bitmapCache.get(cacheKey)?.let { if (!it.isRecycled) return@withContext it }
 
       renderMutex.withLock {
+        if (pageIndex < 0 || pageIndex >= pageCount) return@withContext null
         bitmapCache.get(cacheKey)?.let { if (!it.isRecycled) return@withContext it }
-        renderer.openPage(pageIndex).use { page ->
-          val aspect = if (page.width > 0) page.height.toFloat() / page.width.toFloat() else 1.414f
-          val renderW = safeWidth
-          val renderH = (safeWidth * aspect).toInt().coerceIn(120, 3400)
-          val rawBitmap = Bitmap.createBitmap(renderW, renderH, Bitmap.Config.ARGB_8888)
-          rawBitmap.eraseColor(Color.WHITE)
-          page.render(rawBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        runCatching {
+          renderer.openPage(pageIndex).use { page ->
+            val aspect = if (page.width > 0) page.height.toFloat() / page.width.toFloat() else 1.414f
+            var renderW = safeWidth
+            var renderH = (safeWidth * aspect).toInt().coerceIn(120, 3400)
+            val maxPixels = 6_000_000L
+            if (renderW.toLong() * renderH.toLong() > maxPixels) {
+              val scale = kotlin.math.sqrt(maxPixels.toDouble() / (renderW.toDouble() * renderH.toDouble())).toFloat()
+              renderW = (renderW * scale).toInt().coerceAtLeast(120)
+              renderH = (renderH * scale).toInt().coerceAtLeast(120)
+            }
+            val rawBitmap = Bitmap.createBitmap(renderW, renderH, Bitmap.Config.ARGB_8888)
+            rawBitmap.eraseColor(Color.WHITE)
+            page.render(rawBitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
 
-          val finalBitmap = if (rotationDegrees % 360 != 0) {
-            val matrix = android.graphics.Matrix().apply { postRotate((rotationDegrees % 360).toFloat()) }
-            val rotated = Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
-            if (rotated != rawBitmap) rawBitmap.recycle()
-            rotated
-          } else {
-            rawBitmap
+            val finalBitmap = if (rotationDegrees % 360 != 0) {
+              val matrix = android.graphics.Matrix().apply { postRotate((rotationDegrees % 360).toFloat()) }
+              val rotated = Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
+              if (rotated != rawBitmap) rawBitmap.recycle()
+              rotated
+            } else {
+              rawBitmap
+            }
+            bitmapCache.put(cacheKey, finalBitmap)
+            finalBitmap
           }
-          bitmapCache.put(cacheKey, finalBitmap)
-          finalBitmap
-        }
+        }.getOrNull()
       }
     }
 
@@ -232,29 +240,51 @@ class PdfReaderEngine(private val context: Context) {
   suspend fun openSession(uri: Uri): Result<PdfSession> = withContext(Dispatchers.IO) {
     runCatching {
       // Try direct file descriptor first; fall back to copying into temp file if provider doesn't support seekable FD
-      var tempFile: File? = null
       val directPfd = runCatching { context.contentResolver.openFileDescriptor(uri, "r") }.getOrNull()
-      val pfd = if (directPfd != null) {
+      if (directPfd != null) {
         try {
           val testRenderer = PdfRenderer(directPfd)
+          if (testRenderer.pageCount <= 0) {
+            testRenderer.close()
+            directPfd.close()
+            error("This PDF contains zero pages.")
+          }
           return@runCatching PdfSession(context, uri, null, directPfd, testRenderer)
         } catch (_: Exception) {
           runCatching { directPfd.close() }
-          null
         }
-      } else null
+      }
 
-      if (pfd == null) {
-        val tempDir = File(context.cacheDir, "paperly_temp").apply { mkdirs() }
-        tempFile = File(tempDir, "pdf_session_${System.currentTimeMillis()}.pdf")
+      val tempDir = File(context.cacheDir, "paperly_temp").apply { mkdirs() }
+      val tempFile = File(tempDir, "pdf_session_${System.nanoTime()}.pdf")
+      var filePfd: ParcelFileDescriptor? = null
+      try {
+        var bytesCopied = 0L
         context.contentResolver.openInputStream(uri)?.use { input ->
-          FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+          FileOutputStream(tempFile).use { output ->
+            bytesCopied = input.copyTo(output)
+          }
         } ?: error("Unable to open PDF stream.")
-        val filePfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
-        val renderer = PdfRenderer(filePfd)
+        if (bytesCopied <= 0L) {
+          error("This file is empty (0 bytes).")
+        }
+        filePfd = ParcelFileDescriptor.open(tempFile, ParcelFileDescriptor.MODE_READ_ONLY)
+        val renderer = try {
+          PdfRenderer(filePfd)
+        } catch (se: SecurityException) {
+          throw IllegalStateException("This PDF is password-protected and cannot be opened without removing encryption.", se)
+        } catch (t: Throwable) {
+          throw IllegalStateException("This file is corrupted or not a valid PDF document.", t)
+        }
+        if (renderer.pageCount <= 0) {
+          renderer.close()
+          error("This PDF contains zero pages.")
+        }
         PdfSession(context, uri, tempFile, filePfd, renderer)
-      } else {
-        error("Unreachable")
+      } catch (t: Throwable) {
+        runCatching { filePfd?.close() }
+        runCatching { tempFile.delete() }
+        throw t
       }
     }
   }

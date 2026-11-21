@@ -32,6 +32,12 @@ class LocalSensitiveDetector {
     val sb = StringBuilder()
     val boxes = mutableListOf<NormRect?>()
 
+    val targetPage = doc.getPage(pageIndex)
+    val pageBox = targetPage.cropBox ?: targetPage.mediaBox
+    val pageRot = ((targetPage.rotation % 360) + 360) % 360
+    val visualW = (if (pageRot == 90 || pageRot == 270) pageBox.height else pageBox.width).takeIf { it > 0f } ?: 595f
+    val visualH = (if (pageRot == 90 || pageRot == 270) pageBox.width else pageBox.height).takeIf { it > 0f } ?: 842f
+
     val stripper = object : PDFTextStripper() {
       init {
         startPage = pageIndex + 1
@@ -45,18 +51,7 @@ class LocalSensitiveDetector {
         for (i in 0 until maxIdx) {
           val ch = text[i]
           val tp = textPositions[i]
-          val pw = tp.pageWidth.takeIf { it > 0f } ?: 595f
-          val ph = tp.pageHeight.takeIf { it > 0f } ?: 842f
-          val x = tp.xDirAdj
-          val yBaseline = tp.yDirAdj
-          val w = tp.widthDirAdj.coerceAtLeast(1f)
-          val h = tp.heightDir.coerceAtLeast(4f)
-          val norm = NormRect(
-            left = (x / pw).coerceIn(0f, 1f),
-            top = ((yBaseline - h * 1.05f) / ph).coerceIn(0f, 1f),
-            right = ((x + w) / pw).coerceIn(0f, 1f),
-            bottom = ((yBaseline + h * 0.25f) / ph).coerceIn(0f, 1f)
-          ).normalized()
+          val norm = textPositionToVisualNormRect(tp, visualW, visualH)
           sb.append(ch)
           boxes.add(norm)
         }
@@ -268,8 +263,15 @@ class LocalSensitiveDetector {
       } else {
         val midYCur = (existing.top + existing.bottom) / 2f
         val midYB = (b.top + b.bottom) / 2f
-        val tol = max(existing.height, b.height) * 0.75f + 0.005f
-        if (kotlin.math.abs(midYCur - midYB) <= tol) {
+        val midXCur = (existing.left + existing.right) / 2f
+        val midXB = (b.left + b.right) / 2f
+        val tolY = max(existing.height, b.height) * 0.75f + 0.005f
+        val tolX = max(existing.width, b.width) * 0.75f + 0.005f
+        val sameHorizontalLine = kotlin.math.abs(midYCur - midYB) <= tolY &&
+          kotlin.math.abs(b.left - existing.right) <= 0.12f
+        val sameVerticalLine = kotlin.math.abs(midXCur - midXB) <= tolX &&
+          kotlin.math.abs(b.top - existing.bottom) <= 0.12f
+        if (sameHorizontalLine || sameVerticalLine) {
           cur = NormRect(
             left = min(existing.left, b.left),
             top = min(existing.top, b.top),
@@ -285,4 +287,30 @@ class LocalSensitiveDetector {
     cur?.let { lineGroups.add(it) }
     return lineGroups
   }
+}
+
+internal fun textPositionToVisualNormRect(
+  tp: TextPosition,
+  visualPageWidth: Float = 595f,
+  visualPageHeight: Float = 842f
+): NormRect {
+  val pw = visualPageWidth.takeIf { it > 0f } ?: tp.pageWidth.takeIf { it > 0f } ?: 595f
+  val ph = visualPageHeight.takeIf { it > 0f } ?: tp.pageHeight.takeIf { it > 0f } ?: 842f
+  val x = tp.x
+  val y = tp.y
+  val w = tp.widthDirAdj.coerceAtLeast(1f)
+  val h = tp.heightDir.coerceAtLeast(4f)
+  val dir = (((tp.dir.toInt() % 360) + 360) % 360)
+  val (leftPx, topPx, rightPx, bottomPx) = when (dir) {
+    90 -> listOf(x - h * 0.25f, y, x + h * 1.05f, y + w)
+    180 -> listOf(x - w, y - h * 0.25f, x, y + h * 1.05f)
+    270 -> listOf(x - h * 1.05f, y - w, x + h * 0.25f, y)
+    else -> listOf(x, y - h * 1.05f, x + w, y + h * 0.25f)
+  }
+  return NormRect(
+    left = (leftPx / pw).coerceIn(0f, 1f),
+    top = (topPx / ph).coerceIn(0f, 1f),
+    right = (rightPx / pw).coerceIn(0f, 1f),
+    bottom = (bottomPx / ph).coerceIn(0f, 1f)
+  ).normalized()
 }

@@ -418,7 +418,7 @@ private fun RecentDocCard(
             tint = spec.accentColor
           )
           Row {
-            IconButton(onClick = onToggleFavorite, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onToggleFavorite, modifier = Modifier.minimumInteractiveComponentSize()) {
               Icon(
                 if (doc.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = "Favourite",
@@ -426,7 +426,7 @@ private fun RecentDocCard(
                 modifier = Modifier.size(18.dp)
               )
             }
-            IconButton(onClick = onRemove, modifier = Modifier.size(36.dp)) {
+            IconButton(onClick = onRemove, modifier = Modifier.minimumInteractiveComponentSize()) {
               Icon(Icons.Default.Close, contentDescription = "Remove from history", tint = spec.textSecondaryColor, modifier = Modifier.size(18.dp))
             }
           }

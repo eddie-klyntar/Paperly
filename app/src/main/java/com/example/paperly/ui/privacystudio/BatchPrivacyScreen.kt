@@ -367,6 +367,11 @@ fun BatchPrivacyScreen(
                           sourceTextToVerify = sug.matchedText
                         )
                       }
+                      val baseNoExt = item.displayName.substringBeforeLast('.').ifBlank { "item_${idx + 1}" }
+                      val hasDupName = snapshot.count {
+                        it.displayName.substringBeforeLast('.').equals(baseNoExt, ignoreCase = true)
+                      } > 1
+                      val itemSuffix = if (hasDupName) "${suffix}_${idx + 1}" else suffix
                       if (item.kind == DocumentKind.PDF) {
                         val res = pdfPrivacyEngine.applyAndExport(
                           uri = item.uri,
@@ -377,7 +382,7 @@ fun BatchPrivacyScreen(
                             stripFormFields = stripPdfExtras,
                             stripAttachments = stripPdfExtras,
                             stripHiddenLayers = stripPdfExtras,
-                            outputSuffix = suffix
+                            outputSuffix = itemSuffix
                           )
                         )
                         val exp = res.getOrNull()
@@ -406,7 +411,7 @@ fun BatchPrivacyScreen(
                           operations = ops,
                           outputFormat = ImageFormatOption.JPEG,
                           quality = settings.imageDefaultQuality,
-                          suffix = suffix,
+                          suffix = itemSuffix,
                           stripExifMetadata = stripMetadataExif
                         )
                         val exp = res.getOrNull()

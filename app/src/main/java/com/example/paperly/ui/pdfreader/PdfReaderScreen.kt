@@ -14,6 +14,7 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -112,6 +113,7 @@ import com.example.paperly.theme.LocalPaperlyTheme
 import com.example.paperly.theme.PaperlyCanvasBackground
 import com.example.paperly.theme.PaperlySurfaceCard
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 @Composable
 fun PdfReaderScreen(
@@ -438,6 +440,7 @@ fun PdfReaderScreen(
             }
 
             if (showSearchBar && session != null) {
+              var hasRunSearch by remember(pdfUri) { mutableStateOf(false) }
               Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -445,7 +448,10 @@ fun PdfReaderScreen(
               ) {
                 OutlinedTextField(
                   value = searchQuery,
-                  onValueChange = { searchQuery = it },
+                  onValueChange = {
+                    searchQuery = it
+                    hasRunSearch = false
+                  },
                   placeholder = { Text("Search text in PDF...") },
                   singleLine = true,
                   modifier = Modifier.weight(1f).testTag("pdf_search_input")
@@ -457,6 +463,7 @@ fun PdfReaderScreen(
                       isSearching = true
                       searchHits = s.search(searchQuery)
                       activeHitIdx = 0
+                      hasRunSearch = true
                       searchHits.firstOrNull()?.let { hit ->
                         currentPage = hit.pageIndex
                         if (continuousScroll) listState.scrollToItem(hit.pageIndex)
@@ -486,26 +493,40 @@ fun PdfReaderScreen(
                     modifier = Modifier.weight(1f)
                   )
                   Row {
-                    IconButton(onClick = {
-                      activeHitIdx = if (activeHitIdx <= 0) searchHits.lastIndex else activeHitIdx - 1
-                      val p = searchHits[activeHitIdx].pageIndex
-                      currentPage = p
-                      if (continuousScroll) scope.launch { listState.scrollToItem(p) }
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous match") }
-                    IconButton(onClick = {
-                      activeHitIdx = (activeHitIdx + 1) % searchHits.size
-                      val p = searchHits[activeHitIdx].pageIndex
-                      currentPage = p
-                      if (continuousScroll) scope.launch { listState.scrollToItem(p) }
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next match") }
+                    IconButton(
+                      onClick = {
+                        activeHitIdx = if (activeHitIdx <= 0) searchHits.lastIndex else activeHitIdx - 1
+                        val p = searchHits[activeHitIdx].pageIndex
+                        currentPage = p
+                        if (continuousScroll) scope.launch { listState.scrollToItem(p) }
+                      },
+                      modifier = Modifier.minimumInteractiveComponentSize()
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous match") }
+                    IconButton(
+                      onClick = {
+                        activeHitIdx = (activeHitIdx + 1) % searchHits.size
+                        val p = searchHits[activeHitIdx].pageIndex
+                        currentPage = p
+                        if (continuousScroll) scope.launch { listState.scrollToItem(p) }
+                      },
+                      modifier = Modifier.minimumInteractiveComponentSize()
+                    ) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next match") }
                   }
                 }
-              } else if (searchQuery.isNotBlank() && !isSearching && pdfMeta?.isTextBased == false) {
-                Text(
-                  text = "This PDF appears to be scanned images with no searchable text layer.",
-                  style = MaterialTheme.typography.labelSmall,
-                  color = spec.warningColor
-                )
+              } else if (searchQuery.isNotBlank() && !isSearching) {
+                if (pdfMeta?.isTextBased == false) {
+                  Text(
+                    text = "This PDF appears to be scanned images with no searchable text layer.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = spec.warningColor
+                  )
+                } else if (hasRunSearch) {
+                  Text(
+                    text = "No matches found for \"$searchQuery\".",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = spec.textSecondaryColor
+                  )
+                }
               }
             }
           }
@@ -612,7 +633,11 @@ fun PdfReaderScreen(
               LaunchedEffect(pagerState.currentPage) {
                 currentPage = pagerState.currentPage
               }
-              HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIdx ->
+              HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = zoom <= 1.05f,
+                modifier = Modifier.fillMaxSize()
+              ) { pageIdx ->
                 Box(
                   modifier = Modifier
                     .fillMaxSize()
@@ -845,38 +870,56 @@ private fun PdfPageView(
   rotation: Int,
   colorFilter: ColorFilter?
 ) {
-  var bitmap by remember(session, pageIndex, zoom, rotation) { mutableStateOf<Bitmap?>(null) }
-  val targetW = (900f * zoom).toInt().coerceIn(500, 2100)
+  // Keep previous rendered page bitmap across continuous zoom updates to avoid spinner flicker while pinching
+  var bitmap by remember(session, pageIndex, rotation) { mutableStateOf<Bitmap?>(null) }
+  val quantizedZoom = ((zoom * 4f).roundToInt() / 4f).coerceIn(0.75f, 3.0f)
+  val targetW = (900f * quantizedZoom).toInt().coerceIn(500, 2100)
 
   LaunchedEffect(session, pageIndex, targetW, rotation) {
-    bitmap = session.renderPage(pageIndex, targetW, rotation)
+    val rendered = session.renderPage(pageIndex, targetW, rotation)
+    if (rendered != null) bitmap = rendered
   }
 
   val bmp = bitmap
-  Box(
-    modifier = Modifier
-      .fillMaxWidth()
-      .clip(RoundedCornerShape(6.dp))
-      .background(Color.White)
-      .graphicsLayer(scaleX = 1f, scaleY = 1f),
-    contentAlignment = Alignment.Center
-  ) {
-    if (bmp != null && !bmp.isRecycled) {
-      Image(
-        bitmap = bmp.asImageBitmap(),
-        contentDescription = "PDF page ${pageIndex + 1}",
-        contentScale = ContentScale.FillWidth,
-        colorFilter = colorFilter,
-        modifier = Modifier.fillMaxWidth()
-      )
-    } else {
+  BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+    val baseW = maxWidth
+    val zoomedW = (baseW * zoom).coerceAtLeast(180.dp)
+    val hScroll = rememberScrollState()
+
+    Box(
+      modifier = Modifier
+        .fillMaxWidth()
+        .horizontalScroll(hScroll, enabled = zoom > 1.02f),
+      contentAlignment = if (zoom > 1.02f) Alignment.TopStart else Alignment.Center
+    ) {
       Box(
         modifier = Modifier
-          .fillMaxWidth()
-          .aspectRatio(0.707f),
+          .width(if (zoom < 1.0f) baseW * zoom else zoomedW)
+          .clip(RoundedCornerShape(6.dp))
+          .background(Color.White),
         contentAlignment = Alignment.Center
       ) {
-        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+        if (bmp != null && !bmp.isRecycled) {
+          val aspect = bmp.width.toFloat() / bmp.height.coerceAtLeast(1)
+          Image(
+            bitmap = bmp.asImageBitmap(),
+            contentDescription = "PDF page ${pageIndex + 1}",
+            contentScale = ContentScale.FillBounds,
+            colorFilter = colorFilter,
+            modifier = Modifier
+              .fillMaxWidth()
+              .aspectRatio(aspect)
+          )
+        } else {
+          Box(
+            modifier = Modifier
+              .fillMaxWidth()
+              .aspectRatio(0.707f),
+            contentAlignment = Alignment.Center
+          ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+          }
+        }
       }
     }
   }

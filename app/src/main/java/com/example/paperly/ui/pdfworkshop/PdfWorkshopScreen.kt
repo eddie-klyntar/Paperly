@@ -62,6 +62,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -246,6 +247,15 @@ fun PdfWorkshopScreen(
     }
   }
 
+  DisposableEffect(Unit) {
+    onDispose {
+      annotSession?.close()
+      annotSession = null
+      pageThumbnails = emptyList()
+      annotPageBitmap = null
+    }
+  }
+
   LaunchedEffect(annotPageIdx, annotSession) {
     annotPageBitmap = annotSession?.renderPage(annotPageIdx, 1000, 0)
   }
@@ -347,13 +357,13 @@ fun PdfWorkshopScreen(
                     verticalAlignment = Alignment.CenterVertically
                   ) {
                     Text("${idx + 1}. $name", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    IconButton(onClick = { if (idx > 0) mergeUris.add(idx - 1, mergeUris.removeAt(idx)) }, enabled = idx > 0) {
+                    IconButton(onClick = { if (idx > 0) mergeUris.add(idx - 1, mergeUris.removeAt(idx)) }, enabled = idx > 0, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowUpward, "Move up", modifier = Modifier.size(18.dp))
                     }
-                    IconButton(onClick = { if (idx < mergeUris.lastIndex) mergeUris.add(idx + 1, mergeUris.removeAt(idx)) }, enabled = idx < mergeUris.lastIndex) {
+                    IconButton(onClick = { if (idx < mergeUris.lastIndex) mergeUris.add(idx + 1, mergeUris.removeAt(idx)) }, enabled = idx < mergeUris.lastIndex, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowDownward, "Move down", modifier = Modifier.size(18.dp))
                     }
-                    IconButton(onClick = { mergeUris.removeAt(idx) }) {
+                    IconButton(onClick = { mergeUris.removeAt(idx) }, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(18.dp))
                     }
                   }
@@ -467,21 +477,22 @@ fun PdfWorkshopScreen(
                       Text("Page ${item.originalPageIndex + 1}", style = MaterialTheme.typography.labelLarge)
                       Text("Rotation: ${item.rotationDegrees}°", style = MaterialTheme.typography.labelSmall, color = spec.textSecondaryColor)
                     }
-                    IconButton(onClick = { pageEdits[idx] = item.copy(rotationDegrees = (item.rotationDegrees + 90) % 360) }) {
+                    IconButton(onClick = { pageEdits[idx] = item.copy(rotationDegrees = (item.rotationDegrees + 90) % 360) }, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.RotateRight, "Rotate 90°")
                     }
-                    IconButton(onClick = { if (idx > 0) pageEdits.add(idx - 1, pageEdits.removeAt(idx)) }, enabled = idx > 0) {
+                    IconButton(onClick = { if (idx > 0) pageEdits.add(idx - 1, pageEdits.removeAt(idx)) }, enabled = idx > 0, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowUpward, "Move up")
                     }
-                    IconButton(onClick = { if (idx < pageEdits.lastIndex) pageEdits.add(idx + 1, pageEdits.removeAt(idx)) }, enabled = idx < pageEdits.lastIndex) {
+                    IconButton(onClick = { if (idx < pageEdits.lastIndex) pageEdits.add(idx + 1, pageEdits.removeAt(idx)) }, enabled = idx < pageEdits.lastIndex, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowDownward, "Move down")
                     }
-                    IconButton(onClick = {
-                      pageEdits.add(idx + 1, item.copy(id = "dup_${System.nanoTime()}"))
-                    }) {
+                    IconButton(
+                      onClick = { pageEdits.add(idx + 1, item.copy(id = "dup_${System.nanoTime()}")) },
+                      modifier = Modifier.minimumInteractiveComponentSize()
+                    ) {
                       Icon(Icons.Default.ContentCopy, "Duplicate page")
                     }
-                    IconButton(onClick = { if (pageEdits.size > 1) pageEdits.removeAt(idx) }, enabled = pageEdits.size > 1) {
+                    IconButton(onClick = { if (pageEdits.size > 1) pageEdits.removeAt(idx) }, enabled = pageEdits.size > 1, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.Delete, "Delete page")
                     }
                   }

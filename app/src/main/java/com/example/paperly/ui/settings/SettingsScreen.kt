@@ -324,7 +324,7 @@ fun SettingsScreen(
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(Icons.Default.Lock, null, tint = spec.accentColor)
             Column {
-              Text("Strictly Offline Architecture", style = MaterialTheme.typography.titleSmall, color = spec.textPrimaryColor)
+              Text("Paperly v0.1.0 • Strictly Offline", style = MaterialTheme.typography.titleSmall, color = spec.textPrimaryColor)
               Text(
                 "Zero internet permissions, zero analytics, zero cloud processing. Every document, font, and theme stays on your device.",
                 style = MaterialTheme.typography.bodySmall,
@@ -348,7 +348,7 @@ private fun SettingSwitchRow(
 ) {
   val spec = LocalPaperlyTheme.current
   Row(
-    modifier = Modifier.fillMaxWidth(),
+    modifier = Modifier.fillMaxWidth().minimumInteractiveComponentSize(),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
   ) {

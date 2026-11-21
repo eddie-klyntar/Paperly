@@ -51,6 +51,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -188,6 +189,12 @@ fun ImageWorkshopScreen(
       queueUris.addAll(uris)
       batchProgress.clear()
       generatedPdfFile = null
+    }
+  }
+
+  DisposableEffect(Unit) {
+    onDispose {
+      singleResult = null
     }
   }
 
@@ -563,13 +570,13 @@ fun ImageWorkshopScreen(
                     verticalAlignment = Alignment.CenterVertically
                   ) {
                     Text("${idx + 1}. $name", style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    IconButton(onClick = { if (idx > 0) queueUris.add(idx - 1, queueUris.removeAt(idx)) }, enabled = idx > 0) {
+                    IconButton(onClick = { if (idx > 0) queueUris.add(idx - 1, queueUris.removeAt(idx)) }, enabled = idx > 0, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowUpward, "Move up", modifier = Modifier.size(18.dp))
                     }
-                    IconButton(onClick = { if (idx < queueUris.lastIndex) queueUris.add(idx + 1, queueUris.removeAt(idx)) }, enabled = idx < queueUris.lastIndex) {
+                    IconButton(onClick = { if (idx < queueUris.lastIndex) queueUris.add(idx + 1, queueUris.removeAt(idx)) }, enabled = idx < queueUris.lastIndex, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.ArrowDownward, "Move down", modifier = Modifier.size(18.dp))
                     }
-                    IconButton(onClick = { queueUris.removeAt(idx) }) {
+                    IconButton(onClick = { queueUris.removeAt(idx) }, modifier = Modifier.minimumInteractiveComponentSize()) {
                       Icon(Icons.Default.Close, "Remove", modifier = Modifier.size(18.dp))
                     }
                   }
