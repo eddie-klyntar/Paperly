@@ -6,14 +6,20 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-  entities = [RecentDocumentEntity::class, BookmarkEntity::class, CustomThemeEntity::class],
-  version = 1,
+  entities = [
+    RecentDocumentEntity::class,
+    BookmarkEntity::class,
+    CustomThemeEntity::class,
+    RecentPrivacyProjectEntity::class
+  ],
+  version = 2,
   exportSchema = false
 )
 abstract class PaperlyDatabase : RoomDatabase() {
   abstract fun recentDocumentDao(): RecentDocumentDao
   abstract fun bookmarkDao(): BookmarkDao
   abstract fun customThemeDao(): CustomThemeDao
+  abstract fun privacyProjectDao(): PrivacyProjectDao
 
   companion object {
     fun build(context: Context): PaperlyDatabase =

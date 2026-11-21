@@ -57,6 +57,10 @@ data class PaperlySettings(
   val pdfDefaultPageSize: String = "A4",
   val pdfDefaultCompression: String = "Balanced",
   val pdfSuffix: String = "_edited",
+  // Privacy Studio suffixes
+  val privacyRedactSuffix: String = "_redacted",
+  val privacyBlurSuffix: String = "_blurred",
+  val privacyAnonymiseSuffix: String = "_anonymised",
   // Dashboard
   val dashboardGridLayout: Boolean = false,
   val dashboardSortOrder: DashboardSortOrder = DashboardSortOrder.DATE
@@ -93,6 +97,10 @@ class SettingsStore(private val context: Context) {
     val PDF_COMPRESSION = stringPreferencesKey("pdf_compression")
     val PDF_SUFFIX = stringPreferencesKey("pdf_suffix")
 
+    val PRIVACY_REDACT_SUFFIX = stringPreferencesKey("privacy_redact_suffix")
+    val PRIVACY_BLUR_SUFFIX = stringPreferencesKey("privacy_blur_suffix")
+    val PRIVACY_ANON_SUFFIX = stringPreferencesKey("privacy_anon_suffix")
+
     val DASH_GRID = booleanPreferencesKey("dash_grid")
     val DASH_SORT = stringPreferencesKey("dash_sort")
   }
@@ -122,6 +130,9 @@ class SettingsStore(private val context: Context) {
       pdfDefaultPageSize = p[Keys.PDF_PAGE_SIZE] ?: "A4",
       pdfDefaultCompression = p[Keys.PDF_COMPRESSION] ?: "Balanced",
       pdfSuffix = p[Keys.PDF_SUFFIX] ?: "_edited",
+      privacyRedactSuffix = p[Keys.PRIVACY_REDACT_SUFFIX] ?: "_redacted",
+      privacyBlurSuffix = p[Keys.PRIVACY_BLUR_SUFFIX] ?: "_blurred",
+      privacyAnonymiseSuffix = p[Keys.PRIVACY_ANON_SUFFIX] ?: "_anonymised",
       dashboardGridLayout = p[Keys.DASH_GRID] ?: false,
       dashboardSortOrder = runCatching { DashboardSortOrder.valueOf(p[Keys.DASH_SORT] ?: "") }.getOrDefault(DashboardSortOrder.DATE)
     )
@@ -202,6 +213,14 @@ class SettingsStore(private val context: Context) {
       pageSize?.let { prefs[Keys.PDF_PAGE_SIZE] = it }
       compression?.let { prefs[Keys.PDF_COMPRESSION] = it }
       suffix?.let { prefs[Keys.PDF_SUFFIX] = it }
+    }
+  }
+
+  suspend fun updatePrivacySuffixes(redactSuffix: String? = null, blurSuffix: String? = null, anonymiseSuffix: String? = null) {
+    context.paperlyDataStore.edit { prefs ->
+      redactSuffix?.let { prefs[Keys.PRIVACY_REDACT_SUFFIX] = it }
+      blurSuffix?.let { prefs[Keys.PRIVACY_BLUR_SUFFIX] = it }
+      anonymiseSuffix?.let { prefs[Keys.PRIVACY_ANON_SUFFIX] = it }
     }
   }
 

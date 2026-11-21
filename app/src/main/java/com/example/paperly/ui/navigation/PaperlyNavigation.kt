@@ -44,6 +44,7 @@ import com.example.paperly.ui.imageworkshop.ImageWorkshopScreen
 import com.example.paperly.ui.onboarding.OnboardingScreen
 import com.example.paperly.ui.pdfreader.PdfReaderScreen
 import com.example.paperly.ui.pdfworkshop.PdfWorkshopScreen
+import com.example.paperly.ui.privacystudio.PrivacyStudioHostScreen
 import com.example.paperly.ui.settings.SettingsScreen
 import com.example.paperly.ui.spreadsheet.SpreadsheetViewerScreen
 import com.example.paperly.ui.themes.ThemeGalleryScreen
@@ -57,6 +58,7 @@ object PaperlyRoutes {
   const val SPREADSHEET = "spreadsheet"
   const val IMAGE_WORKSHOP = "image_workshop"
   const val PDF_WORKSHOP = "pdf_workshop"
+  const val PRIVACY_STUDIO = "privacy_studio"
   const val THEME_GALLERY = "theme_gallery"
   const val THEME_STUDIO = "theme_studio"
   const val SETTINGS = "settings"
@@ -72,6 +74,9 @@ fun PaperlyRootHost(
   val activeSheetUri by viewModel.activeSheetUri.collectAsStateWithLifecycle()
   val workshopPdfUri by viewModel.workshopPreloadPdfUri.collectAsStateWithLifecycle()
   val workshopImages by viewModel.workshopPreloadImages.collectAsStateWithLifecycle()
+  val privacyPdfUri by viewModel.privacyPreloadPdfUri.collectAsStateWithLifecycle()
+  val privacyImageUri by viewModel.privacyPreloadImageUri.collectAsStateWithLifecycle()
+  val privacyRequestedMode by viewModel.privacyRequestedMode.collectAsStateWithLifecycle()
   val pendingRoute by viewModel.pendingNavigationRoute.collectAsStateWithLifecycle()
 
   val navController = rememberNavController()
@@ -220,6 +225,7 @@ fun PaperlyRootHost(
                   onNavigateSheets = { navigateTopLevel(PaperlyRoutes.SPREADSHEET) },
                   onNavigateImageWorkshop = { navigateTopLevel(PaperlyRoutes.IMAGE_WORKSHOP) },
                   onNavigatePdfWorkshop = { navigateTopLevel(PaperlyRoutes.PDF_WORKSHOP) },
+                  onNavigatePrivacyStudio = { navController.navigate(PaperlyRoutes.PRIVACY_STUDIO) },
                   onNavigateThemes = { navController.navigate(PaperlyRoutes.THEME_GALLERY) },
                   onNavigateSettings = { navController.navigate(PaperlyRoutes.SETTINGS) }
                 )
@@ -235,6 +241,10 @@ fun PaperlyRootHost(
                   onOpenInPdfWorkshop = { uri ->
                     viewModel.sendPdfToWorkshop(uri)
                     navigateTopLevel(PaperlyRoutes.PDF_WORKSHOP)
+                  },
+                  onOpenInPrivacyStudio = { uri ->
+                    viewModel.sendPdfToPrivacyStudio(uri)
+                    navController.navigate(PaperlyRoutes.PRIVACY_STUDIO)
                   }
                 )
               }
@@ -258,6 +268,10 @@ fun PaperlyRootHost(
                   onOpenPdfUri = { uri ->
                     viewModel.openPdfUri(uri)
                     navigateTopLevel(PaperlyRoutes.PDF_READER)
+                  },
+                  onOpenInPrivacyStudio = { uri ->
+                    if (uri != null) viewModel.sendImageToPrivacyStudio(uri)
+                    navController.navigate(PaperlyRoutes.PRIVACY_STUDIO)
                   }
                 )
               }
@@ -272,6 +286,34 @@ fun PaperlyRootHost(
                   onOpenPdfUri = { uri ->
                     viewModel.openPdfUri(uri)
                     navigateTopLevel(PaperlyRoutes.PDF_READER)
+                  },
+                  onOpenInPrivacyStudio = { uri ->
+                    if (uri != null) viewModel.sendPdfToPrivacyStudio(uri)
+                    navController.navigate(PaperlyRoutes.PRIVACY_STUDIO)
+                  }
+                )
+              }
+
+              composable(PaperlyRoutes.PRIVACY_STUDIO) {
+                BackHandler {
+                  if (!navController.popBackStack()) navigateTopLevel(PaperlyRoutes.DASHBOARD)
+                }
+                PrivacyStudioHostScreen(
+                  preloadedPdfUri = privacyPdfUri,
+                  preloadedImageUri = privacyImageUri,
+                  requestedMode = privacyRequestedMode,
+                  settings = appState.settings,
+                  recentProjects = appState.recentPrivacyProjects,
+                  container = container,
+                  onClearPreloads = viewModel::clearPrivacyPreloads,
+                  onOpenPdfInReader = { uri ->
+                    viewModel.openPdfUri(uri)
+                    navigateTopLevel(PaperlyRoutes.PDF_READER)
+                  },
+                  onDeleteProject = viewModel::deletePrivacyProject,
+                  onClearProjects = viewModel::clearPrivacyProjects,
+                  onExitToDashboard = {
+                    if (!navController.popBackStack()) navigateTopLevel(PaperlyRoutes.DASHBOARD)
                   }
                 )
               }
@@ -334,6 +376,7 @@ fun PaperlyRootHost(
                   onUpdateSheetDefaults = viewModel::updateSpreadsheetDefaults,
                   onUpdateImageDefaults = viewModel::updateImageDefaults,
                   onUpdatePdfWorkshopDefaults = viewModel::updatePdfWorkshopDefaults,
+                  onUpdatePrivacySuffixes = viewModel::updatePrivacySuffixes,
                   onClearHistory = viewModel::clearRecentHistory,
                   onBack = {
                     if (!navController.popBackStack()) navigateTopLevel(PaperlyRoutes.DASHBOARD)

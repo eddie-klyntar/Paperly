@@ -51,3 +51,19 @@ data class CustomThemeEntity(
   val updatedAt: Long = System.currentTimeMillis(),
   val isFavorite: Boolean = false
 )
+
+@Entity(tableName = "recent_privacy_projects")
+data class RecentPrivacyProjectEntity(
+  @PrimaryKey val id: String,
+  val sourceUriString: String,
+  val displayName: String,
+  val sourceKind: String,
+  val lastMode: String,
+  val outputFilePath: String,
+  val outputDisplayName: String,
+  val verificationSummary: String,
+  val verifiedSafe: Boolean,
+  val operationCount: Int,
+  val updatedAt: Long = System.currentTimeMillis()
+)
+

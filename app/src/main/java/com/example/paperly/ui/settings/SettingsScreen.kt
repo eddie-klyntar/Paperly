@@ -69,6 +69,7 @@ fun SettingsScreen(
   onUpdateSheetDefaults: (Float?, Boolean?, Boolean?) -> Unit,
   onUpdateImageDefaults: (String?, Int?, String?) -> Unit,
   onUpdatePdfWorkshopDefaults: (String?, String?, String?) -> Unit,
+  onUpdatePrivacySuffixes: (String?, String?, String?) -> Unit,
   onClearHistory: () -> Unit,
   onBack: () -> Unit
 ) {
@@ -249,6 +250,34 @@ fun SettingsScreen(
               }
             }
             Text("Originals are always preserved on every PDF and image operation.", style = MaterialTheme.typography.labelSmall, color = spec.textSecondaryColor)
+          }
+        }
+
+        // Privacy Studio Suffix Defaults
+        PaperlySurfaceCard(spec = spec, modifier = Modifier.fillMaxWidth()) {
+          Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Privacy Studio Output Suffixes", style = MaterialTheme.typography.titleMedium, color = spec.textPrimaryColor)
+            OutlinedTextField(
+              value = settings.privacyRedactSuffix,
+              onValueChange = { onUpdatePrivacySuffixes(it, null, null) },
+              label = { Text("Permanent Redaction Suffix") },
+              singleLine = true,
+              modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+              value = settings.privacyBlurSuffix,
+              onValueChange = { onUpdatePrivacySuffixes(null, it, null) },
+              label = { Text("Blur & Pixelate Suffix") },
+              singleLine = true,
+              modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+              value = settings.privacyAnonymiseSuffix,
+              onValueChange = { onUpdatePrivacySuffixes(null, null, it) },
+              label = { Text("Replace & Anonymise Suffix") },
+              singleLine = true,
+              modifier = Modifier.fillMaxWidth()
+            )
           }
         }
 

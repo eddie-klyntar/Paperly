@@ -11,8 +11,10 @@ import com.example.paperly.data.db.BookmarkEntity
 import com.example.paperly.data.db.CustomThemeDao
 import com.example.paperly.data.db.CustomThemeEntity
 import com.example.paperly.data.db.DocumentKind
+import com.example.paperly.data.db.PrivacyProjectDao
 import com.example.paperly.data.db.RecentDocumentDao
 import com.example.paperly.data.db.RecentDocumentEntity
+import com.example.paperly.data.db.RecentPrivacyProjectEntity
 import com.example.paperly.theme.PaperlyThemeSpec
 import com.example.paperly.theme.ThemeJsonCodec
 import kotlinx.coroutines.Dispatchers
@@ -33,10 +35,12 @@ class DocumentRepository(
   private val context: Context,
   private val recentDao: RecentDocumentDao,
   private val bookmarkDao: BookmarkDao,
-  private val customThemeDao: CustomThemeDao
+  private val customThemeDao: CustomThemeDao,
+  private val privacyProjectDao: PrivacyProjectDao
 ) {
   val recentDocuments: Flow<List<RecentDocumentEntity>> = recentDao.observeAll()
   val favoriteDocuments: Flow<List<RecentDocumentEntity>> = recentDao.observeFavorites()
+  val recentPrivacyProjects: Flow<List<RecentPrivacyProjectEntity>> = privacyProjectDao.observeAll()
 
   val customThemes: Flow<List<PaperlyThemeSpec>> = customThemeDao.observeAll().map { entities ->
     entities.mapNotNull { entity ->
@@ -200,6 +204,18 @@ class DocumentRepository(
 
   suspend fun clearRecentHistory() = withContext(Dispatchers.IO) {
     recentDao.clearAll()
+  }
+
+  suspend fun recordPrivacyProject(project: RecentPrivacyProjectEntity) = withContext(Dispatchers.IO) {
+    privacyProjectDao.upsert(project)
+  }
+
+  suspend fun deletePrivacyProject(id: String) = withContext(Dispatchers.IO) {
+    privacyProjectDao.deleteById(id)
+  }
+
+  suspend fun clearPrivacyProjects() = withContext(Dispatchers.IO) {
+    privacyProjectDao.clearAll()
   }
 
   fun workspaceExportsDir(): File = File(context.filesDir, "paperly_exports").apply { mkdirs() }

@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -133,7 +134,8 @@ fun PdfWorkshopScreen(
   pdfWorkshopEngine: PdfWorkshopEngine,
   pdfReaderEngine: PdfReaderEngine,
   documentRepo: DocumentRepository,
-  onOpenPdfUri: (Uri) -> Unit
+  onOpenPdfUri: (Uri) -> Unit,
+  onOpenInPrivacyStudio: (Uri?) -> Unit
 ) {
   val spec = LocalPaperlyTheme.current
   val context = LocalContext.current
@@ -257,7 +259,15 @@ fun PdfWorkshopScreen(
       Spacer(Modifier.height(10.dp))
       PaperlyHeaderBanner(
         title = "PDF Workshop",
-        subtitle = "Non-destructive merge, split, page edits, compress & sign"
+        subtitle = "Non-destructive merge, split, page edits, compress & sign",
+        trailing = {
+          IconButton(
+            onClick = { onOpenInPrivacyStudio(primaryPdfUri) },
+            modifier = Modifier.minimumInteractiveComponentSize().testTag("pdf_ws_privacy_button")
+          ) {
+            Icon(Icons.Default.Shield, contentDescription = "Open in Privacy Studio", tint = spec.accentColor)
+          }
+        }
       )
       Spacer(Modifier.height(8.dp))
 

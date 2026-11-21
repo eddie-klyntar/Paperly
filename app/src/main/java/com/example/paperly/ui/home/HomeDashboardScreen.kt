@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.Button
@@ -97,6 +98,7 @@ fun HomeDashboardScreen(
   onNavigateSheets: () -> Unit,
   onNavigateImageWorkshop: () -> Unit,
   onNavigatePdfWorkshop: () -> Unit,
+  onNavigatePrivacyStudio: () -> Unit,
   onNavigateThemes: () -> Unit,
   onNavigateSettings: () -> Unit
 ) {
@@ -140,6 +142,12 @@ fun HomeDashboardScreen(
         subtitle = "${spec.name} • 100% Offline",
         trailing = {
           Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+              onClick = onNavigatePrivacyStudio,
+              modifier = Modifier.minimumInteractiveComponentSize().testTag("home_privacy_studio_button")
+            ) {
+              Icon(Icons.Default.Shield, contentDescription = "Privacy Studio", tint = spec.accentColor)
+            }
             IconButton(
               onClick = onNavigateThemes,
               modifier = Modifier.minimumInteractiveComponentSize().testTag("home_themes_button")
@@ -210,6 +218,7 @@ fun HomeDashboardScreen(
           .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(10.dp)
       ) {
+        WorkspaceTile("Privacy Studio", "Redact & blur", Icons.Default.Shield, spec, "tile_privacy_studio", onNavigatePrivacyStudio)
         WorkspaceTile("PDF Reader", "Read & search", Icons.Default.Description, spec, "tile_pdf_reader", onNavigatePdfReader)
         WorkspaceTile("Sheets", "XLSX & CSV", Icons.Default.TableChart, spec, "tile_sheets", onNavigateSheets)
         WorkspaceTile("Image Lab", "Resize & PDF", Icons.Default.Image, spec, "tile_image_lab", onNavigateImageWorkshop)

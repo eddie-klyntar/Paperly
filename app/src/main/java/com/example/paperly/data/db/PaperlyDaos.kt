@@ -62,3 +62,19 @@ interface CustomThemeDao {
   @Query("DELETE FROM custom_themes WHERE id = :id")
   suspend fun deleteById(id: String)
 }
+
+@Dao
+interface PrivacyProjectDao {
+  @Query("SELECT * FROM recent_privacy_projects ORDER BY updatedAt DESC")
+  fun observeAll(): Flow<List<RecentPrivacyProjectEntity>>
+
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun upsert(entity: RecentPrivacyProjectEntity)
+
+  @Query("DELETE FROM recent_privacy_projects WHERE id = :id")
+  suspend fun deleteById(id: String)
+
+  @Query("DELETE FROM recent_privacy_projects")
+  suspend fun clearAll()
+}
+

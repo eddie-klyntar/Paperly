@@ -54,6 +54,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.RotateRight
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SelectAll
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.ZoomIn
 import androidx.compose.material.icons.filled.ZoomOut
@@ -119,7 +120,8 @@ fun PdfReaderScreen(
   pdfEngine: PdfReaderEngine,
   documentRepo: DocumentRepository,
   onSelectPdfUri: (Uri) -> Unit,
-  onOpenInPdfWorkshop: (Uri) -> Unit
+  onOpenInPdfWorkshop: (Uri) -> Unit,
+  onOpenInPrivacyStudio: (Uri) -> Unit
 ) {
   val spec = LocalPaperlyTheme.current
   val context = LocalContext.current
@@ -418,6 +420,13 @@ fun PdfReaderScreen(
                   label = { Text("Info") }
                 )
                 if (pdfUri != null) {
+                  FilterChip(
+                    selected = false,
+                    onClick = { onOpenInPrivacyStudio(pdfUri) },
+                    leadingIcon = { Icon(Icons.Default.Shield, null, modifier = Modifier.size(16.dp)) },
+                    label = { Text("Privacy Studio") },
+                    modifier = Modifier.testTag("pdf_reader_privacy_chip")
+                  )
                   FilterChip(
                     selected = false,
                     onClick = { onOpenInPdfWorkshop(pdfUri) },

@@ -7,9 +7,11 @@ import androidx.lifecycle.viewModelScope
 import com.example.paperly.core.AppContainer
 import com.example.paperly.data.db.DocumentKind
 import com.example.paperly.data.db.RecentDocumentEntity
+import com.example.paperly.data.db.RecentPrivacyProjectEntity
 import com.example.paperly.data.prefs.DashboardSortOrder
 import com.example.paperly.data.prefs.PaperlySettings
 import com.example.paperly.data.prefs.PdfAppearanceMode
+import com.example.paperly.engines.privacy.PrivacyEditMode
 import com.example.paperly.theme.PaperlyThemeSpec
 import com.example.paperly.theme.ThemeJsonCodec
 import com.example.paperly.theme.ThemeMode
@@ -28,6 +30,7 @@ data class PaperlyAppUiState(
   val activeTheme: PaperlyThemeSpec = ThemePresets.defaultTheme,
   val recentDocuments: List<RecentDocumentEntity> = emptyList(),
   val favoriteDocuments: List<RecentDocumentEntity> = emptyList(),
+  val recentPrivacyProjects: List<RecentPrivacyProjectEntity> = emptyList(),
   val allThemes: List<PaperlyThemeSpec> = ThemePresets.allPresets
 )
 
@@ -47,6 +50,15 @@ class PaperlyViewModel(private val container: AppContainer) : ViewModel() {
 
   private val _workshopPreloadImages = MutableStateFlow<List<Uri>>(emptyList())
   val workshopPreloadImages: StateFlow<List<Uri>> = _workshopPreloadImages.asStateFlow()
+
+  private val _privacyPreloadPdfUri = MutableStateFlow<Uri?>(null)
+  val privacyPreloadPdfUri: StateFlow<Uri?> = _privacyPreloadPdfUri.asStateFlow()
+
+  private val _privacyPreloadImageUri = MutableStateFlow<Uri?>(null)
+  val privacyPreloadImageUri: StateFlow<Uri?> = _privacyPreloadImageUri.asStateFlow()
+
+  private val _privacyRequestedMode = MutableStateFlow<PrivacyEditMode?>(null)
+  val privacyRequestedMode: StateFlow<PrivacyEditMode?> = _privacyRequestedMode.asStateFlow()
 
   private val _pendingNavigationRoute = MutableStateFlow<String?>(null)
   val pendingNavigationRoute: StateFlow<String?> = _pendingNavigationRoute.asStateFlow()
@@ -84,8 +96,9 @@ class PaperlyViewModel(private val container: AppContainer) : ViewModel() {
     settingsStore.settingsFlow,
     documentRepo.customThemes,
     documentRepo.recentDocuments,
-    documentRepo.favoriteDocuments
-  ) { settings, customThemes, recents, favs ->
+    documentRepo.favoriteDocuments,
+    documentRepo.recentPrivacyProjects
+  ) { settings, customThemes, recents, favs, privacyProjects ->
     val all = customThemes + ThemePresets.allPresets
     val active = all.firstOrNull { it.id == settings.activeThemeId } ?: ThemePresets.defaultTheme
     PaperlyAppUiState(
@@ -94,6 +107,7 @@ class PaperlyViewModel(private val container: AppContainer) : ViewModel() {
       activeTheme = active,
       recentDocuments = recents,
       favoriteDocuments = favs,
+      recentPrivacyProjects = privacyProjects,
       allThemes = all
     )
   }.stateIn(
@@ -225,6 +239,38 @@ class PaperlyViewModel(private val container: AppContainer) : ViewModel() {
   fun sendImagesToWorkshop(uris: List<Uri>) {
     uris.forEach { documentRepo.persistUriPermission(it) }
     _workshopPreloadImages.value = uris
+  }
+
+  fun sendPdfToPrivacyStudio(uri: Uri, mode: PrivacyEditMode = PrivacyEditMode.PERMANENT_REDACTION) {
+    documentRepo.persistUriPermission(uri)
+    _privacyPreloadPdfUri.value = uri
+    _privacyRequestedMode.value = mode
+  }
+
+  fun sendImageToPrivacyStudio(uri: Uri, mode: PrivacyEditMode = PrivacyEditMode.PERMANENT_REDACTION) {
+    documentRepo.persistUriPermission(uri)
+    _privacyPreloadImageUri.value = uri
+    _privacyRequestedMode.value = mode
+  }
+
+  fun clearPrivacyPreloads() {
+    _privacyPreloadPdfUri.value = null
+    _privacyPreloadImageUri.value = null
+    _privacyRequestedMode.value = null
+  }
+
+  fun updatePrivacySuffixes(redactSuffix: String?, blurSuffix: String?, anonymiseSuffix: String?) {
+    viewModelScope.launch {
+      settingsStore.updatePrivacySuffixes(redactSuffix, blurSuffix, anonymiseSuffix)
+    }
+  }
+
+  fun deletePrivacyProject(id: String) {
+    viewModelScope.launch { documentRepo.deletePrivacyProject(id) }
+  }
+
+  fun clearPrivacyProjects() {
+    viewModelScope.launch { documentRepo.clearPrivacyProjects() }
   }
 
   suspend fun classifyAndRouteUri(uri: Uri): DocumentKind {

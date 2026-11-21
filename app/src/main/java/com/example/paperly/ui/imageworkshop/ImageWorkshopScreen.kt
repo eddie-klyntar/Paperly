@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -101,7 +102,8 @@ fun ImageWorkshopScreen(
   settings: PaperlySettings,
   imageEngine: ImageWorkshopEngine,
   documentRepo: DocumentRepository,
-  onOpenPdfUri: (Uri) -> Unit
+  onOpenPdfUri: (Uri) -> Unit,
+  onOpenInPrivacyStudio: (Uri?) -> Unit
 ) {
   val spec = LocalPaperlyTheme.current
   val context = LocalContext.current
@@ -236,7 +238,15 @@ fun ImageWorkshopScreen(
       Spacer(Modifier.height(10.dp))
       PaperlyHeaderBanner(
         title = "Image Workshop",
-        subtitle = "Resize, compress, convert & create PDFs locally"
+        subtitle = "Resize, compress, convert & create PDFs locally",
+        trailing = {
+          IconButton(
+            onClick = { onOpenInPrivacyStudio(selectedSingleUri) },
+            modifier = Modifier.minimumInteractiveComponentSize().testTag("img_ws_privacy_button")
+          ) {
+            Icon(Icons.Default.Shield, contentDescription = "Open in Privacy Studio", tint = spec.accentColor)
+          }
+        }
       )
       Spacer(Modifier.height(8.dp))
 
